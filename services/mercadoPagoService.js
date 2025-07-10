@@ -15,25 +15,34 @@ export async function criarPagamento({
     sobrenome = '',
     formData,
     valor,
-    tipoReceita
+    tipoReceita,
+    incluiEbook = false,
+    incluiDiaLixo = false
 }) {
     if (!email || !nome || !formData || !valor || !tipoReceita) {
         throw new Error('Dados insuficientes para criar pagamento');
     }
 
-    // 🔒 Verificação de segurança: valores permitidos
     const valoresPermitidos = [
-        10.00,   // Nutri Essencial
-        13.90,   // Hipertrofia Smart
-        14.90,   // Emagrecer Power
-        15.90,   // Nutri Essencial + treino
-        18.90,   // Hipertrofia Smart + treino
-        20.80    // Emagrecer Power + treino
+        10.00,         // Essencial
+        13.90,         // Hipertrofia
+        14.90,         // Emagrecer
+        15.90,         // Hipertrofia + treino
+        18.90,         // Emagrecer + treino
+        20.80,         // Emagrecer + treino + ebook + lixo
+        19.80,         // Emagrecer + treino + ebook
+        17.80,         // Emagrecer + treino + lixo
+        16.80,         // Emagrecer + ebook + lixo
+        12.90,         // Essencial + ebook + lixo
+        11.90,         // Essencial + ebook
+        12.90,         // Essencial + lixo
+        17.80,         // Hipertrofia + ebook + lixo
+        16.80,         // Hipertrofia + ebook
+        16.80          // Hipertrofia + lixo
     ];
 
     const valorConvertido = Number(valor);
 
-    // Verifica se o valor recebido é exato a algum dos planos válidos
     const valorValido = valoresPermitidos.some(v => v === parseFloat(valorConvertido.toFixed(2)));
 
     if (!valorValido) {
@@ -45,6 +54,8 @@ export async function criarPagamento({
         email,
         valor,
         tipoReceita,
+        incluiEbook,
+        incluiDiaLixo,
         formData: Buffer.from(JSON.stringify(formData)).toString('base64')
     };
 
@@ -102,7 +113,6 @@ export async function criarPagamento({
         throw new Error(error.message || 'Erro ao criar pagamento no Mercado Pago');
     }
 }
-
 
 export async function buscarPagamento(paymentId) {
     try {

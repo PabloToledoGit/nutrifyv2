@@ -15,15 +15,19 @@ export default async function handler(req, res) {
     sobrenome = '',
     formData,
     valor,
-    tipoReceita 
+    tipoReceita,
+    incluiEbook = false,
+    incluiDiaLixo = false
   } = req.body;
 
   console.log('[API] Dados recebidos:', {
     email,
     nome,
     valor,
-    tipoReceita, 
-    formData 
+    tipoReceita,
+    incluiEbook,
+    incluiDiaLixo,
+    formData
   });
 
   if (!email || !nome || !formData || !valor || !tipoReceita) {
@@ -37,7 +41,9 @@ export default async function handler(req, res) {
       sobrenome,
       formData,
       valor,
-      tipoReceita 
+      tipoReceita,
+      incluiEbook,
+      incluiDiaLixo
     });
 
     return res.status(200).json(resultado);
