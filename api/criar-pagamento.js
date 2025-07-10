@@ -15,17 +15,15 @@ export default async function handler(req, res) {
     sobrenome = '',
     formData,
     valor,
-    tipoReceita
   } = req.body;
 
   console.log('[API] Dados recebidos:', {
     email,
     nome,
     valor,
-    tipoReceita
   });
 
-  if (!email || !nome || !formData || !valor || !tipoReceita) {
+  if (!email || !nome || !formData || !valor) {
     return res.status(400).json({ error: 'Dados insuficientes para criar pagamento.' });
   }
 
@@ -36,7 +34,6 @@ export default async function handler(req, res) {
       sobrenome,
       formData,
       valor,
-      tipoReceita
     });
 
     return res.status(200).json(resultado);
