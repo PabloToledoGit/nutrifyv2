@@ -19,11 +19,17 @@ export const gerarTextoReceita = async (userData) => {
     alimentosSelecionadosJanta,
     frequenciaTreino,
     planoNome,
+    historicoSaude = "",
     incluiTreino = false,
     incluiDiaLixo = false
   } = userData;
 
   const prompt = `
+**Atenção: Priorize o histórico de saúde do cliente em todas as decisões da dieta e treino. Nenhum alimento, suplemento ou atividade deve ser recomendada caso contrarie restrições ou condições descritas.**
+
+Histórico de saúde informado pelo cliente:
+${historicoSaude}
+
 Utilize os dados abaixo para gerar um plano nutricional${incluiTreino ? ' e de treino' : ''} personalizado em formato de **HTML e CSS**, adaptado para o modelo de layout do Nutrify. O conteúdo precisa estar diretamente pronto para ser inserido na função gerarHTMLReceita(), sem usar markdown:
 
 Informações do Usuário:
@@ -54,17 +60,17 @@ Regras:
 - Apresente substituições para proteínas, carboidratos e gorduras
 - Mostre horários indicados para cada refeição
 - Calcule IMC e água ideal com explicação
-- Sugira hábitos e suplementos com base no objetivo
+- Sugira hábitos e suplementos com base no objetivo, respeitando o histórico de saúde
 
-${incluiTreino ? `Inclua um plano de treino semanal, com dias divididos, exercícios, repetições, tempo de descanso e observações.` : ''}
+${incluiTreino ? `Inclua um plano de treino semanal, com dias divididos, exercícios, repetições, tempo de descanso e observações — adaptado ao histórico de saúde do cliente.` : ''}
 
-${incluiDiaLixo ? `Adicione uma seção chamada "Dia do Lixo" com instruções para uma refeição livre semanal, sugerindo como fazer sem perder os resultados.` : ''}
+${incluiDiaLixo ? `Adicione uma seção chamada "Dia do Lixo" com instruções para uma refeição livre semanal, explicando como aproveitar sem prejudicar os resultados, considerando o histórico de saúde.` : ''}
 
 Importante:
 - Não inclua cabeçalho, HTML, HEAD, BODY, nem CSS.
 - Apenas o conteúdo dentro da <div class='receita'>...
 - Não coloque comentários, apenas HTML válido.
-  `;
+`;
 
   try {
     const completion = await openai.chat.completions.create({
@@ -86,3 +92,4 @@ Importante:
     throw new Error(`Erro na geração da receita: ${error.message}`);
   }
 };
+
