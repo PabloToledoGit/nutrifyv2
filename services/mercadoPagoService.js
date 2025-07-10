@@ -21,6 +21,26 @@ export async function criarPagamento({
         throw new Error('Dados insuficientes para criar pagamento');
     }
 
+    // 🔒 Verificação de segurança: valores permitidos
+    const valoresPermitidos = [
+        10.00,   // Nutri Essencial
+        13.90,   // Hipertrofia Smart
+        14.90,   // Emagrecer Power
+        15.90,   // Nutri Essencial + treino
+        18.90,   // Hipertrofia Smart + treino
+        20.80    // Emagrecer Power + treino
+    ];
+
+    const valorConvertido = Number(valor);
+
+    // Verifica se o valor recebido é exato a algum dos planos válidos
+    const valorValido = valoresPermitidos.some(v => v === parseFloat(valorConvertido.toFixed(2)));
+
+    if (!valorValido) {
+        console.warn(`[Segurança] Valor inválido recebido: R$ ${valorConvertido}`);
+        throw new Error('Valor do plano não autorizado.');
+    }
+
     const metadata = {
         email,
         valor,
@@ -35,12 +55,12 @@ export async function criarPagamento({
             description: `Plano alimentar e de treino individualizado`,
             category_id: 'services',
             quantity: 1,
-            unit_price: Number(valor)
+            unit_price: valorConvertido
         }
     ];
 
     const body = {
-        transaction_amount: Number(valor),
+        transaction_amount: valorConvertido,
         payment_method_id: 'pix',
         description: `Plano personalizado - Nutrify`,
         payer: {
@@ -82,6 +102,7 @@ export async function criarPagamento({
         throw new Error(error.message || 'Erro ao criar pagamento no Mercado Pago');
     }
 }
+
 
 export async function buscarPagamento(paymentId) {
     try {
