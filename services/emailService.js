@@ -16,8 +16,8 @@ export const enviarEmailComPDF = async (emailDestinatario, tituloReceita, pdfBuf
       port: 465,
       secure: true,
       auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS,
+        user: 'nutrify@nutrifyservice.com',
+        pass: 'Pa199735@', // ⚠️ Só para teste
       },
       tls: {
         rejectUnauthorized: false
