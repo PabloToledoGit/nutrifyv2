@@ -24,13 +24,17 @@ export const gerarTextoReceita = async (userData) => {
     incluiDiaLixo = false
   } = userData;
 
+  // 🔒 Corrigir possíveis tipos incorretos de boolean vindo como string
+  const treinoAtivo = String(incluiTreino).toLowerCase() === 'true' || incluiTreino === true;
+  const lixoAtivo = String(incluiDiaLixo).toLowerCase() === 'true' || incluiDiaLixo === true;
+
   const prompt = `
 **Atenção: Priorize o histórico de saúde do cliente em todas as decisões da dieta e treino. Nenhum alimento, suplemento ou atividade deve ser recomendada caso contrarie restrições ou condições descritas.**
 
 Histórico de saúde informado pelo cliente:
 ${historicoSaude}
 
-Utilize os dados abaixo para gerar um plano nutricional${incluiTreino ? ' e de treino' : ''} personalizado em formato de **HTML e CSS**, adaptado para o modelo de layout do Nutrify. O conteúdo precisa estar diretamente pronto para ser inserido na função gerarHTMLReceita(), sem usar markdown:
+Utilize os dados abaixo para gerar um plano nutricional${treinoAtivo ? ' e de treino' : ''} personalizado em formato de **HTML e CSS**, adaptado para o modelo de layout do Nutrify. O conteúdo precisa estar diretamente pronto para ser inserido na função gerarHTMLReceita(), sem usar markdown:
 
 Informações do Usuário:
 - Nome do Plano: ${planoNome}
@@ -62,9 +66,9 @@ Regras:
 - Calcule IMC e água ideal com explicação
 - Sugira hábitos e suplementos com base no objetivo, respeitando o histórico de saúde
 
-${incluiTreino ? `Inclua um plano de treino semanal, com dias divididos, exercícios, repetições, tempo de descanso e observações — adaptado ao histórico de saúde do cliente.` : ''}
+${treinoAtivo ? `Inclua um plano de treino semanal, com dias divididos, exercícios, repetições, tempo de descanso e observações — adaptado ao histórico de saúde do cliente.` : ''}
 
-${incluiDiaLixo ? `Adicione uma seção chamada "Dia do Lixo" com instruções para uma refeição livre semanal, explicando como aproveitar sem prejudicar os resultados, considerando o histórico de saúde.` : ''}
+${lixoAtivo ? `Adicione uma seção chamada "Dia do Lixo" com instruções para uma refeição livre semanal, explicando como aproveitar sem prejudicar os resultados, considerando o histórico de saúde.` : ''}
 
 Importante:
 - Não inclua cabeçalho, HTML, HEAD, BODY, nem CSS.
@@ -79,7 +83,10 @@ Importante:
       temperature: 0.7,
     });
 
-    const resposta = completion.choices?.[0]?.message?.content;
+    let resposta = completion.choices?.[0]?.message?.content || "";
+
+    // 🚫 Remover blocos ```html e ```
+    resposta = resposta.replace(/```html|```/g, "").trim();
 
     if (!resposta) {
       console.error("Resposta vazia da OpenAI", completion);
@@ -92,4 +99,3 @@ Importante:
     throw new Error(`Erro na geração da receita: ${error.message}`);
   }
 };
-
