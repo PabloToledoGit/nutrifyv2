@@ -24,22 +24,22 @@ export async function criarPagamento({
     }
 
     const valoresPermitidos = [
-        10.00,         // Essencial
-        13.90,         // Hipertrofia
-        14.90,         // Emagrecer
-        15.90,         // Hipertrofia + treino
-        18.90,         // Emagrecer + treino
-        20.80,         // Emagrecer + treino + ebook + lixo
-        19.80,         // Emagrecer + treino + ebook
-        17.80,         // Emagrecer + treino + lixo
-        16.80,         // Emagrecer + ebook + lixo
-        12.90,         // Essencial + ebook + lixo
-        11.90,         // Essencial + ebook
-        12.90,         // Essencial + lixo
-        17.80,         // Hipertrofia + ebook + lixo
-        16.80,         // Hipertrofia + ebook
-        16.80          // Hipertrofia + lixo
+        10.00,
+        13.90,
+        14.90,
+        15.90,
+        18.90,
+        20.80,
+        19.80,
+        17.80,
+        16.80,
+        12.90,
+        11.90,
+        17.80,
+        16.80,
+        28.60  
     ];
+
 
     const valorConvertido = Number(valor);
 
