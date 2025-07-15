@@ -80,6 +80,16 @@ export async function processarWebhookPagamento(paymentData) {
     let dadosUsuario = {};
     try {
       dadosUsuario = JSON.parse(Buffer.from(formDataEncoded, 'base64').toString('utf8'));
+
+      // 🚨 Adiciona flags extras vindas do metadata
+      dadosUsuario.incluiTreino = metadata.incluiTreino === true || metadata.incluiTreino === 'true';
+      dadosUsuario.incluiDiaLixo = metadata.incluiDiaLixo === true || metadata.incluiDiaLixo === 'true';
+
+      console.log("[Webhook] Flags adicionadas ao formData:", {
+        incluiTreino: dadosUsuario.incluiTreino,
+        incluiDiaLixo: dadosUsuario.incluiDiaLixo
+      });
+
     } catch (err) {
       console.error('[Webhook] Erro ao decodificar formData:', err);
       return;

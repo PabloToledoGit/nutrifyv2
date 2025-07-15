@@ -28,6 +28,10 @@ export const gerarTextoReceita = async (userData) => {
   const treinoAtivo = String(incluiTreino).toLowerCase() === 'true' || incluiTreino === true;
   const lixoAtivo = String(incluiDiaLixo).toLowerCase() === 'true' || incluiDiaLixo === true;
 
+  console.log("[Prompt] treinoAtivo:", treinoAtivo);
+  console.log("[Prompt] lixoAtivo:", lixoAtivo);
+
+
   const prompt = `
 **Atenção: Priorize o histórico de saúde do cliente em todas as decisões da dieta e treino. Nenhum alimento, suplemento ou atividade deve ser recomendada caso contrarie restrições ou condições descritas.**
 
@@ -62,18 +66,20 @@ Preferências Alimentares:
 - Inclua **substituições** inteligentes para proteína, carbo e gordura se possível
 - **Sugira hábitos saudáveis e suplementos** com base no objetivo (respeitando o histórico de saúde)
 
-📅 ${treinoAtivo ? `**Inclua um plano de treino semanal** com:
-- Divisão de treinos de Segunda a Sábado
-- Títulos dos dias com foco (ex: “Peito e Tríceps”)
-- Lista de exercícios com séries, repetições e observações
-` : ''}
-
 ${lixoAtivo ? `
 🍕 **Inclua uma seção chamada "Dia do Lixo":**
 - Título: “Dia do Lixo”
 - Parágrafo explicando o conceito de refeição livre semanal
 - Dicas práticas de como aproveitar sem sabotar os resultados
 - Sugira o melhor momento da semana para aplicar a refeição livre com base no objetivo
+` : ''}
+
+${treinoAtivo ? `
+📅 **Plano de Treino Personalizado:**
+- Divida os dias da semana com foco muscular (ex: Peito, Costas, Pernas...)
+- Liste os exercícios com repetições, séries e tempo de descanso
+- Inclua observações como variações de intensidade, atenção à postura, etc.
+- Adapte tudo conforme o histórico de saúde informado
 ` : ''}
 
 💡 Estrutura HTML:
