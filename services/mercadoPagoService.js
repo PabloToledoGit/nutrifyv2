@@ -20,35 +20,36 @@ export async function criarPagamento({
     incluiDiaLixo = false
 }) {
     if (!email || !nome || !formData || !valor || !tipoReceita) {
+        console.warn('[Pagamento] Dados insuficientes recebidos:', {
+            email, nome, sobrenome, valor, tipoReceita, formData
+        });
         throw new Error('Dados insuficientes para criar pagamento');
     }
 
     const valoresPermitidos = [
-        10.00,
-        13.90,
-        14.90,
-        15.90,
-        18.90,
-        20.80,
-        19.80,
-        17.80,
-        16.80,
-        12.90,
-        11.90,
-        17.80,
-        16.80,
-        28.60  
+        10.00, 13.90, 14.90, 15.90, 18.90, 20.80, 19.80,
+        17.80, 16.80, 12.90, 11.90, 28.60
     ];
 
-
     const valorConvertido = Number(valor);
-
     const valorValido = valoresPermitidos.some(v => v === parseFloat(valorConvertido.toFixed(2)));
 
     if (!valorValido) {
         console.warn(`[Segurança] Valor inválido recebido: R$ ${valorConvertido}`);
         throw new Error('Valor do plano não autorizado.');
     }
+
+    // 🧩 LOG: Metadados recebidos antes de envio
+    console.log('[Pagamento] Dados recebidos para criar pagamento:', {
+        email,
+        nome,
+        sobrenome,
+        valor: valorConvertido,
+        tipoReceita,
+        incluiEbook,
+        incluiDiaLixo,
+        formData
+    });
 
     const metadata = {
         email,
@@ -89,9 +90,11 @@ export async function criarPagamento({
         }
     };
 
+    // 🧩 LOG: Corpo final enviado ao Mercado Pago
+    console.log('[Pagamento] Corpo enviado para MP:', body);
+
     try {
         const response = await payment.create({ body });
-
         const { id, point_of_interaction } = response;
 
         if (
@@ -101,6 +104,12 @@ export async function criarPagamento({
             console.error('[Pagamento] Dados de QR Code ausentes na resposta:', response);
             throw new Error('Falha ao obter QR Code do pagamento');
         }
+
+        // ✅ LOG: Pagamento criado com sucesso
+        console.log('[Pagamento] Pagamento criado com sucesso:', {
+            paymentId: id,
+            ticketUrl: point_of_interaction.transaction_data.ticket_url
+        });
 
         return {
             paymentId: id,
@@ -113,6 +122,7 @@ export async function criarPagamento({
         throw new Error(error.message || 'Erro ao criar pagamento no Mercado Pago');
     }
 }
+
 
 export async function buscarPagamento(paymentId) {
     try {

@@ -34,7 +34,7 @@ export const gerarTextoReceita = async (userData) => {
 Histórico de saúde informado pelo cliente:
 ${historicoSaude}
 
-Utilize os dados abaixo para gerar um plano nutricional${treinoAtivo ? ' e de treino' : ''} personalizado em formato de **HTML e CSS**, adaptado para o modelo de layout do Nutrify. O conteúdo precisa estar diretamente pronto para ser inserido na função gerarHTMLReceita(), sem usar markdown:
+Utilize os dados abaixo para gerar um plano nutricional${treinoAtivo ? ' e de treino' : ''} personalizado em **HTML e CSS embutido**, com aparência visual semelhante ao plano "Dieta NutriInteligente" mas adaptado à identidade moderna e limpa do Nutrify (tons de verde, blocos bem definidos, títulos claros e seções bem divididas).
 
 Informações do Usuário:
 - Nome do Plano: ${planoNome}
@@ -52,28 +52,44 @@ Preferências Alimentares:
 - Lanche: ${alimentosSelecionadosLanche}
 - Jantar: ${alimentosSelecionadosJanta}
 
-Estrutura Esperada:
-- Utilize <h1> a <h4> para títulos e subtítulos
-- Use <ul> e <li> para listas de alimentos
-- Use <p> para textos gerais
-- Os títulos principais devem ter cor verde (#15803d) e usar a estrutura do HTML que será injetada dentro da div com classe 'receita'.
+📌 **Regras para o Plano:**
+- Inclua um aviso de exclusividade e privacidade no topo
+- Calcule e explique o **IMC** e a **ingestão ideal de água**
+- Divida as **refeições** com:
+  - Título com horário e calorias da refeição
+  - 3 opções de cardápio com quantidades em gramas
+  - Total de calorias por refeição proporcional: Café (20%), Lanche Manhã (15%), Almoço (25%), Lanche Tarde (15%), Jantar (25%)
+- Inclua **substituições** inteligentes para proteína, carbo e gordura se possível
+- **Sugira hábitos saudáveis e suplementos** com base no objetivo (respeitando o histórico de saúde)
 
-Regras:
-- Divida as refeições (café, almoço, lanche, jantar) com opções diferentes
-- Atribua quantidade de calorias proporcional: Café (20%), Lanche Manhã (15%), Almoço (25%), Lanche Tarde (15%), Jantar (25%)
-- Apresente substituições para proteínas, carboidratos e gorduras
-- Mostre horários indicados para cada refeição
-- Calcule IMC e água ideal com explicação
-- Sugira hábitos e suplementos com base no objetivo, respeitando o histórico de saúde
+📅 ${treinoAtivo ? `**Inclua um plano de treino semanal** com:
+- Divisão de treinos de Segunda a Sábado
+- Títulos dos dias com foco (ex: “Peito e Tríceps”)
+- Lista de exercícios com séries, repetições e observações
+` : ''}
 
-${treinoAtivo ? `Inclua um plano de treino semanal, com dias divididos, exercícios, repetições, tempo de descanso e observações — adaptado ao histórico de saúde do cliente.` : ''}
+${lixoAtivo ? `
+🍕 **Inclua uma seção chamada "Dia do Lixo":**
+- Título: “Dia do Lixo”
+- Parágrafo explicando o conceito de refeição livre semanal
+- Dicas práticas de como aproveitar sem sabotar os resultados
+- Sugira o melhor momento da semana para aplicar a refeição livre com base no objetivo
+` : ''}
 
-${lixoAtivo ? `Adicione uma seção chamada "Dia do Lixo" com instruções para uma refeição livre semanal, explicando como aproveitar sem prejudicar os resultados, considerando o histórico de saúde.` : ''}
+💡 Estrutura HTML:
+- Use <h1>, <h2>, <h3> para os títulos
+- <p> para explicações e dados
+- <ul><li> para listas de alimentos ou exercícios
+- Não use <table>
+- Inclua classes CSS inline com estilo leve (como se fosse um layout bonito, mas que será renderizado direto no navegador ou convertido em PDF)
+- O conteúdo deve estar dentro de: <div class='receita'> ... </div>
 
-Importante:
-- Não inclua cabeçalho, HTML, HEAD, BODY, nem CSS.
-- Apenas o conteúdo dentro da <div class='receita'>...
-- Não coloque comentários, apenas HTML válido.
+⚠️ Importante:
+- **Não inclua** <html>, <head>, <body>, nem markdown
+- **Não use comentários**
+- O conteúdo gerado deve ser colado diretamente na função gerarHTMLReceita()
+
+Visual clean, leve, bonito e organizado — com cara de eBook, mas sem excesso de firula.
 `;
 
   try {
