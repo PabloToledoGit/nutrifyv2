@@ -1,6 +1,6 @@
 // pages/api/criar-pagamento.js
-import { criarPagamento } from '../../services/mercadoPagoService.js';
-import { setCors } from '../../utils/cors.js';
+import { criarPagamento } from '../services/mercadoPagoService.js';
+import { setCors } from '../utils/cors.js';
 
 export default async function handler(req, res) {
   if (setCors(req, res)) return;
