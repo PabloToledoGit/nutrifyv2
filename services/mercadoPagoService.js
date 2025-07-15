@@ -28,7 +28,7 @@ export async function criarPagamento({
 
     const valoresPermitidos = [
         10.00, 13.90, 14.90, 15.90, 18.90, 20.80, 19.80,
-        17.80, 16.80, 12.90, 11.90, 28.60
+        17.80, 16.80, 12.90, 11.90, 28.60, 23.70,
     ];
 
     const valorConvertido = Number(valor);
