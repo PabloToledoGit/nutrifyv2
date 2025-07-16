@@ -103,12 +103,18 @@ export async function processarWebhookPagamento(paymentData) {
     const receita = await gerarTextoReceita(dadosUsuario);
     console.log('[Webhook] Receita gerada.');
 
+    console.log('🔧 Iniciando a geração do PDF...');
     const html = gerarHTMLReceita(dadosUsuario.nome || 'Usuário', receita);
     const pdfBuffer = await gerarPDF(dadosUsuario.nome || 'usuario', html);
+    console.log('✅ Buffer do PDF gerado com sucesso.');
 
-    // ✅ Log robusto para flag eBook
-    const incluiEbook = metadata.incluiEbook === true || metadata.incluiEbook === 'true';
-    console.log(`[Webhook] Flag final incluiEbook (boolean): ${incluiEbook}`);
+    // ✅ CORREÇÃO: Tratando tanto incluiEbook quanto inclui_ebook
+    const incluiEbookRaw = metadata.incluiEbook || metadata.inclui_ebook;
+    console.log('[Webhook] Tipo incluiEbook:', typeof incluiEbookRaw);
+    console.log('[Webhook] Valor incluiEbook recebido:', incluiEbookRaw);
+
+    const incluiEbook = incluiEbookRaw === true || incluiEbookRaw === 'true';
+    console.log('[Webhook] Flag final incluiEbook (boolean):', incluiEbook);
 
     const linkEbook = incluiEbook
       ? 'https://firebasestorage.googleapis.com/v0/b/nutrify-2ca2d.firebasestorage.app/o/7%20Dietas%20F%C3%A1ceis%20e%20Pr%C3%A1ticas%20para%20Perder%20at%C3%A9%2020%25%20de%20Peso%20em%201%20M%C3%AAs.pdf?alt=media&token=675a4ebd-2b9b-439f-9053-f6f9a6a2d904'
