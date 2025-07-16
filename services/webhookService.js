@@ -107,6 +107,10 @@ export async function processarWebhookPagamento(paymentData) {
       ? 'https://firebasestorage.googleapis.com/v0/b/nutrify-2ca2d.firebasestorage.app/o/7%20Dietas%20F%C3%A1ceis%20e%20Pr%C3%A1ticas%20para%20Perder%20at%C3%A9%2020%25%20de%20Peso%20em%201%20M%C3%AAs.pdf?alt=media&token=675a4ebd-2b9b-439f-9053-f6f9a6a2d904'
       : null;
 
+    console.log('[Webhook] Inclui eBook?', incluiEbook);
+    console.log('[Webhook] Link do eBook:', linkEbook);
+
+
     await enviarEmailComPDF(email, dadosUsuario.nome || 'Seu Plano', pdfBuffer, linkEbook);
 
     console.log(`[Webhook] E-mail com PDF enviado para ${email}`);

@@ -31,17 +31,16 @@ export async function criarPagamento({
   ];
 
   const valorConvertido = Number(valor);
-  const valorValido = valoresPermitidos.some(v => v === parseFloat(valorConvertido.toFixed(2)));
+  const valorValido = valoresPermitidos.includes(parseFloat(valorConvertido.toFixed(2)));
 
   if (!valorValido) {
     console.warn(`[Segurança] Valor inválido recebido: R$ ${valorConvertido}`);
     throw new Error('Valor do plano não autorizado.');
   }
 
-
+  // Flags dentro do formData
   formData.incluiTreino = tipoReceita === 'dieta+treino';
   formData.incluiDiaLixo = incluiDiaLixo === true || incluiDiaLixo === 'true';
-
 
   console.log('[Pagamento] Dados recebidos para criar pagamento:', {
     email,
@@ -59,9 +58,9 @@ export async function criarPagamento({
     email,
     valor: valorConvertido,
     tipoReceita,
-    incluiEbook,
-    incluiTreino: formData.incluiTreino,
-    incluiDiaLixo: formData.incluiDiaLixo,
+    incluiEbook: incluiEbook === true || incluiEbook === 'true' ? 'true' : 'false',
+    incluiTreino: formData.incluiTreino === true || formData.incluiTreino === 'true' ? 'true' : 'false',
+    incluiDiaLixo: formData.incluiDiaLixo === true || formData.incluiDiaLixo === 'true' ? 'true' : 'false',
     formData: Buffer.from(JSON.stringify(formData)).toString('base64')
   };
 
@@ -95,7 +94,6 @@ export async function criarPagamento({
     }
   };
 
-
   console.log('[Pagamento] Corpo enviado para MP:', body);
 
   try {
@@ -109,7 +107,6 @@ export async function criarPagamento({
       console.error('[Pagamento] Dados de QR Code ausentes na resposta:', response);
       throw new Error('Falha ao obter QR Code do pagamento');
     }
-
 
     console.log('[Pagamento] Pagamento criado com sucesso:', {
       paymentId: id,
