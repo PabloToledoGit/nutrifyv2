@@ -37,7 +37,6 @@ export async function criarPagamento({
     throw new Error('Valor do plano não autorizado.');
   }
 
-  // ✅ Injeta as flags diretamente no formData
   formData.incluiTreino = tipoReceita === 'dieta+treino';
   formData.incluiDiaLixo = formData.incluiDiaLixo === true || formData.incluiDiaLixo === 'true';
 

@@ -82,8 +82,9 @@ export async function processarWebhookPagamento(paymentData) {
       dadosUsuario = JSON.parse(Buffer.from(formDataEncoded, 'base64').toString('utf8'));
 
       // 🚨 Adiciona flags extras vindas do metadata
-      dadosUsuario.incluiTreino = metadata.incluiTreino === true || metadata.incluiTreino === 'true';
-      dadosUsuario.incluiDiaLixo = metadata.incluiDiaLixo === true || metadata.incluiDiaLixo === 'true';
+      dadosUsuario.incluiTreino = dadosUsuario.incluiTreino === true || dadosUsuario.incluiTreino === 'true';
+      dadosUsuario.incluiDiaLixo = dadosUsuario.incluiDiaLixo === true || dadosUsuario.incluiDiaLixo === 'true';
+
 
       console.log("[Webhook] Flags adicionadas ao formData:", {
         incluiTreino: dadosUsuario.incluiTreino,
