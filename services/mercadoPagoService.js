@@ -1,8 +1,8 @@
 import { MercadoPagoConfig, Payment, MerchantOrder } from 'mercadopago';
 
 const client = new MercadoPagoConfig({
-    accessToken: process.env.MERCADOPAGO_ACESS_TOKEN,
-    options: { timeout: 5000 }
+  accessToken: process.env.MERCADOPAGO_ACESS_TOKEN,
+  options: { timeout: 5000 }
 });
 
 const payment = new Payment(client);
@@ -15,7 +15,8 @@ export async function criarPagamento({
   formData,
   valor,
   tipoReceita,
-  incluiEbook = false
+  incluiEbook = false,
+  incluiDiaLixo = false
 }) {
   if (!email || !nome || !formData || !valor || !tipoReceita) {
     console.warn('[Pagamento] Dados insuficientes recebidos:', {
@@ -37,9 +38,11 @@ export async function criarPagamento({
     throw new Error('Valor do plano não autorizado.');
   }
 
+  // ✅ Corrigir e forçar os flags dentro do formData
   formData.incluiTreino = tipoReceita === 'dieta+treino';
-  formData.incluiDiaLixo = formData.incluiDiaLixo === true || formData.incluiDiaLixo === 'true';
+  formData.incluiDiaLixo = incluiDiaLixo === true || incluiDiaLixo === 'true';
 
+  // 🧩 LOG: Metadados recebidos antes de envio
   console.log('[Pagamento] Dados recebidos para criar pagamento:', {
     email,
     nome,
@@ -47,14 +50,18 @@ export async function criarPagamento({
     valor: valorConvertido,
     tipoReceita,
     incluiEbook,
+    incluiTreino: formData.incluiTreino,
+    incluiDiaLixo: formData.incluiDiaLixo,
     formData
   });
 
   const metadata = {
     email,
-    valor,
+    valor: valorConvertido,
     tipoReceita,
     incluiEbook,
+    incluiTreino: formData.incluiTreino,
+    incluiDiaLixo: formData.incluiDiaLixo,
     formData: Buffer.from(JSON.stringify(formData)).toString('base64')
   };
 
@@ -88,6 +95,7 @@ export async function criarPagamento({
     }
   };
 
+  // 🧩 LOG: Corpo final enviado ao Mercado Pago
   console.log('[Pagamento] Corpo enviado para MP:', body);
 
   try {
@@ -102,6 +110,7 @@ export async function criarPagamento({
       throw new Error('Falha ao obter QR Code do pagamento');
     }
 
+    // ✅ LOG: Pagamento criado com sucesso
     console.log('[Pagamento] Pagamento criado com sucesso:', {
       paymentId: id,
       ticketUrl: point_of_interaction.transaction_data.ticket_url
@@ -119,23 +128,22 @@ export async function criarPagamento({
   }
 }
 
-
 export async function buscarPagamento(paymentId) {
-    try {
-        const result = await payment.get({ id: paymentId });
-        return result;
-    } catch (err) {
-        console.error(`[MP] Erro ao buscar pagamento direto por ID ${paymentId}:`, err.message);
-        return null;
-    }
+  try {
+    const result = await payment.get({ id: paymentId });
+    return result;
+  } catch (err) {
+    console.error(`[MP] Erro ao buscar pagamento direto por ID ${paymentId}:`, err.message);
+    return null;
+  }
 }
 
 export async function buscarViaMerchantOrder(paymentId) {
-    try {
-        const result = await merchantOrder.search({ qs: { external_reference: paymentId } });
-        return result?.results?.[0]?.payments?.[0] || null;
-    } catch (err) {
-        console.error(`[MP] Erro ao buscar pagamento via Merchant Order para ID ${paymentId}:`, err.message);
-        return null;
-    }
+  try {
+    const result = await merchantOrder.search({ qs: { external_reference: paymentId } });
+    return result?.results?.[0]?.payments?.[0] || null;
+  } catch (err) {
+    console.error(`[MP] Erro ao buscar pagamento via Merchant Order para ID ${paymentId}:`, err.message);
+    return null;
+  }
 }
