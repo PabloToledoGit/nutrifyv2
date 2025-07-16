@@ -53,6 +53,11 @@ export async function processarWebhookPagamento(paymentData) {
       return;
     }
 
+    // ✅ Logs extras para debug
+    console.log('[Webhook] Metadata bruta recebida:', metadata);
+    console.log(`[Webhook] Tipo incluiEbook: ${typeof metadata.incluiEbook}`);
+    console.log(`[Webhook] Valor incluiEbook recebido:`, metadata.incluiEbook);
+
     const tipoReceita = metadata.tipoReceita || metadata.tipo_receita;
     const formDataEncoded = metadata.formData || metadata.form_data;
     const email = metadata.email || payer.email;
@@ -85,7 +90,6 @@ export async function processarWebhookPagamento(paymentData) {
       dadosUsuario.incluiTreino = dadosUsuario.incluiTreino === true || dadosUsuario.incluiTreino === 'true';
       dadosUsuario.incluiDiaLixo = dadosUsuario.incluiDiaLixo === true || dadosUsuario.incluiDiaLixo === 'true';
 
-
       console.log("[Webhook] Flags adicionadas ao formData:", {
         incluiTreino: dadosUsuario.incluiTreino,
         incluiDiaLixo: dadosUsuario.incluiDiaLixo
@@ -102,19 +106,19 @@ export async function processarWebhookPagamento(paymentData) {
     const html = gerarHTMLReceita(dadosUsuario.nome || 'Usuário', receita);
     const pdfBuffer = await gerarPDF(dadosUsuario.nome || 'usuario', html);
 
+    // ✅ Log robusto para flag eBook
     const incluiEbook = metadata.incluiEbook === true || metadata.incluiEbook === 'true';
+    console.log(`[Webhook] Flag final incluiEbook (boolean): ${incluiEbook}`);
+
     const linkEbook = incluiEbook
       ? 'https://firebasestorage.googleapis.com/v0/b/nutrify-2ca2d.firebasestorage.app/o/7%20Dietas%20F%C3%A1ceis%20e%20Pr%C3%A1ticas%20para%20Perder%20at%C3%A9%2020%25%20de%20Peso%20em%201%20M%C3%AAs.pdf?alt=media&token=675a4ebd-2b9b-439f-9053-f6f9a6a2d904'
       : null;
 
-    console.log('[Webhook] Inclui eBook?', incluiEbook);
-    console.log('[Webhook] Link do eBook:', linkEbook);
-
+    console.log('[Webhook] Link do eBook:', linkEbook || 'Não incluso');
 
     await enviarEmailComPDF(email, dadosUsuario.nome || 'Seu Plano', pdfBuffer, linkEbook);
 
     console.log(`[Webhook] E-mail com PDF enviado para ${email}`);
-
     console.log(`[Webhook] Processo finalizado com sucesso para pagamento ${id}`);
   } catch (err) {
     console.error('[Webhook] Erro fatal no processamento do webhook:', err);
