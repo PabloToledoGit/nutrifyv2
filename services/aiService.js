@@ -61,26 +61,59 @@ Preferências Alimentares:
 - Calcule e explique o **IMC** e a **ingestão ideal de água**
 - Divida as **refeições** com:
   - Título com horário e calorias da refeição
-  - 3 opções de cardápio com quantidades em gramas
+  - 3 a 4 opções de cardápio com quantidades em gramas
   - Total de calorias por refeição proporcional: Café (20%), Lanche Manhã (15%), Almoço (25%), Lanche Tarde (15%), Jantar (25%)
 - Inclua **substituições** inteligentes para proteína, carbo e gordura se possível
 - **Sugira hábitos saudáveis e suplementos** com base no objetivo (respeitando o histórico de saúde)
 
 ${lixoAtivo ? `
-🍕 **Inclua uma seção chamada "Dia do Lixo":**
+🍕 **Inclua uma seção completa chamada "Dia do Lixo":**
 - Título: “Dia do Lixo”
-- Parágrafo explicando o conceito de refeição livre semanal
-- Dicas práticas de como aproveitar sem sabotar os resultados
-- Sugira o melhor momento da semana para aplicar a refeição livre com base no objetivo
+- Parágrafo explicando detalhadamente o conceito de refeição livre:
+  - A ideia do Dia do Lixo é oferecer uma flexibilidade estratégica para reduzir a ansiedade alimentar, melhorar a adesão à dieta e estimular o metabolismo.
+  - Explique que não se trata de uma licença para exagerar, mas sim de uma oportunidade planejada de consumir alimentos que normalmente não fazem parte da dieta.
+- Liste orientações práticas claras, como:
+  - Dê preferência a 1 refeição livre (e não o dia inteiro)
+  - Evite exageros que possam comprometer a digestão ou o bem-estar no dia seguinte
+  - Evite consumo excessivo de álcool ou frituras em excesso
+  - Mastigue bem, saboreie o momento e evite culpa
+- Sugira alimentos que podem ser incluídos como exemplo (pizza, hambúrguer artesanal, sobremesa moderada etc.)
+- Indique o **melhor momento da semana para aplicar**, considerando o objetivo:
+  - Emagrecimento: Sábado à noite ou Domingo no almoço
+  - Hipertrofia: Após o treino mais intenso da semana
+  - Reeducação alimentar: Em eventos sociais ou comemorações
+- Finalize com um reforço motivacional, como:
+  - “A liberdade com consciência é o segredo de uma dieta sustentável.”
 ` : ''}
 
+
 ${treinoAtivo ? `
-📅 **Plano de Treino Personalizado:**
-- Divida os dias da semana com foco muscular (ex: Peito, Costas, Pernas...)
-- Liste os exercícios com repetições, séries e tempo de descanso
-- Inclua observações como variações de intensidade, atenção à postura, etc.
-- Adapte tudo conforme o histórico de saúde informado
+🏋️ **Inclua uma seção completa chamada "Plano de Treino Personalizado":**
+- Título: "Plano de Treino Semanal"
+- Apresente um parágrafo explicando que o treino é adaptado conforme objetivo, frequência e histórico de saúde informado.
+- Divida a semana com foco muscular e com objetivos claros:
+  - Segunda: Peito + Tríceps
+  - Terça: Costas + Bíceps
+  - Quarta: Pernas + Glúteos
+  - Quinta: Abdômen + Cardio
+  - Sexta: Corpo inteiro (Fullbody) ou circuito funcional
+  - Sábado: Alongamento, yoga ou descanso ativo
+  - Domingo: Descanso total ou caminhada leve
+- Para cada dia, liste de 4 a 6 exercícios com:
+  - Nome do exercício
+  - Número de séries
+  - Repetições
+  - Tempo de descanso
+  - Dicas técnicas (postura, respiração, execução)
+- Adicione variações para treinos em casa e com ou sem equipamentos (halteres, elásticos, peso corporal)
+- Inclua observações específicas como:
+  - Como ajustar a carga de acordo com o nível do aluno
+  - Como identificar sinais de overtraining ou dores indevidas
+  - Como progredir a dificuldade ao longo das semanas
+- Finalize com um bloco motivacional:
+  - “Treino inteligente é aquele que respeita seu corpo e avança junto com ele.”
 ` : ''}
+
 
 💡 Estrutura HTML:
 - Use <h1>, <h2>, <h3> para os títulos

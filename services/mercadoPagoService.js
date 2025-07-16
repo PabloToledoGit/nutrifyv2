@@ -38,11 +38,11 @@ export async function criarPagamento({
     throw new Error('Valor do plano não autorizado.');
   }
 
-  // ✅ Corrigir e forçar os flags dentro do formData
+
   formData.incluiTreino = tipoReceita === 'dieta+treino';
   formData.incluiDiaLixo = incluiDiaLixo === true || incluiDiaLixo === 'true';
 
-  // 🧩 LOG: Metadados recebidos antes de envio
+
   console.log('[Pagamento] Dados recebidos para criar pagamento:', {
     email,
     nome,
@@ -95,7 +95,7 @@ export async function criarPagamento({
     }
   };
 
-  // 🧩 LOG: Corpo final enviado ao Mercado Pago
+
   console.log('[Pagamento] Corpo enviado para MP:', body);
 
   try {
@@ -110,7 +110,7 @@ export async function criarPagamento({
       throw new Error('Falha ao obter QR Code do pagamento');
     }
 
-    // ✅ LOG: Pagamento criado com sucesso
+
     console.log('[Pagamento] Pagamento criado com sucesso:', {
       paymentId: id,
       ticketUrl: point_of_interaction.transaction_data.ticket_url
