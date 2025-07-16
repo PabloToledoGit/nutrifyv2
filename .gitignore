@@ -1,2 +1,25 @@
+# Node modules
+node_modules/
+
+# Variáveis de ambiente
 .env
-node_modules
+
+# Credenciais sensíveis do Firebase
+nutrify-v2-firebase-adminsdk-fbsvc-fff741cf3e.json
+
+# Pastas de build/deploy
+.vercel/
+dist/
+build/
+out/
+.next/
+.cache/
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Arquivos do sistema
+.DS_Store
+Thumbs.db

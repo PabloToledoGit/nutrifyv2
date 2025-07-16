@@ -1,9 +1,9 @@
-// services/webhookService.js
 import { gerarTextoReceita } from './aiService.js';
 import { enviarEmailComPDF } from './emailService.js';
 import { buscarPagamento, buscarViaMerchantOrder } from './mercadoPagoService.js';
 import { gerarPDF } from './gerarPDF.js';
 import { gerarHTMLReceita } from './gerarHTML.js';
+import { salvarDieta } from './databaseService.js';
 
 const delay = (ms) => new Promise((res) => setTimeout(res, ms));
 const arredondar = (num) => Math.round(Number(num) * 100) / 100;
@@ -53,10 +53,7 @@ export async function processarWebhookPagamento(paymentData) {
       return;
     }
 
-    // ✅ Logs extras para debug
     console.log('[Webhook] Metadata bruta recebida:', metadata);
-    console.log(`[Webhook] Tipo incluiEbook: ${typeof metadata.incluiEbook}`);
-    console.log(`[Webhook] Valor incluiEbook recebido:`, metadata.incluiEbook);
 
     const tipoReceita = metadata.tipoReceita || metadata.tipo_receita;
     const formDataEncoded = metadata.formData || metadata.form_data;
@@ -73,12 +70,8 @@ export async function processarWebhookPagamento(paymentData) {
 
     console.log(`[Webhook] Pagamento validado. Valor: R$ ${valorPago} | Receita: ${tipoReceita}`);
 
-    const camposFaltando = [];
-    if (!formDataEncoded) camposFaltando.push('formData');
-    if (!email) camposFaltando.push('email');
-
-    if (camposFaltando.length) {
-      console.error(`[Webhook] Campos faltando: ${camposFaltando.join(', ')}`);
+    if (!formDataEncoded || !email) {
+      console.error('[Webhook] Campos obrigatórios ausentes: formData ou email.');
       return;
     }
 
@@ -86,15 +79,13 @@ export async function processarWebhookPagamento(paymentData) {
     try {
       dadosUsuario = JSON.parse(Buffer.from(formDataEncoded, 'base64').toString('utf8'));
 
-      // 🚨 Adiciona flags extras vindas do metadata
       dadosUsuario.incluiTreino = dadosUsuario.incluiTreino === true || dadosUsuario.incluiTreino === 'true';
       dadosUsuario.incluiDiaLixo = dadosUsuario.incluiDiaLixo === true || dadosUsuario.incluiDiaLixo === 'true';
 
-      console.log("[Webhook] Flags adicionadas ao formData:", {
+      console.log('[Webhook] Flags adicionadas ao formData:', {
         incluiTreino: dadosUsuario.incluiTreino,
         incluiDiaLixo: dadosUsuario.incluiDiaLixo
       });
-
     } catch (err) {
       console.error('[Webhook] Erro ao decodificar formData:', err);
       return;
@@ -108,11 +99,7 @@ export async function processarWebhookPagamento(paymentData) {
     const pdfBuffer = await gerarPDF(dadosUsuario.nome || 'usuario', html);
     console.log('✅ Buffer do PDF gerado com sucesso.');
 
-    // ✅ CORREÇÃO: Tratando tanto incluiEbook quanto inclui_ebook
     const incluiEbookRaw = metadata.incluiEbook || metadata.inclui_ebook;
-    console.log('[Webhook] Tipo incluiEbook:', typeof incluiEbookRaw);
-    console.log('[Webhook] Valor incluiEbook recebido:', incluiEbookRaw);
-
     const incluiEbook = incluiEbookRaw === true || incluiEbookRaw === 'true';
     console.log('[Webhook] Flag final incluiEbook (boolean):', incluiEbook);
 
@@ -123,8 +110,12 @@ export async function processarWebhookPagamento(paymentData) {
     console.log('[Webhook] Link do eBook:', linkEbook || 'Não incluso');
 
     await enviarEmailComPDF(email, dadosUsuario.nome || 'Seu Plano', pdfBuffer, linkEbook);
-
     console.log(`[Webhook] E-mail com PDF enviado para ${email}`);
+
+    // ✅ Salvar no Firebase
+    await salvarDieta(email, dadosUsuario, receita, valorPago, tipoReceita, incluiEbook, id);
+
+    console.log(`[Webhook] Dieta salva no Firestore`);
     console.log(`[Webhook] Processo finalizado com sucesso para pagamento ${id}`);
   } catch (err) {
     console.error('[Webhook] Erro fatal no processamento do webhook:', err);
