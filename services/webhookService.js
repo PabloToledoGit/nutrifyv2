@@ -5,6 +5,8 @@ import { gerarPDF } from './gerarPDF.js';
 import { gerarHTMLReceita } from './gerarHTML.js';
 import { salvarDieta } from './databaseService.js';
 import { registrarConversao } from './conversaoService.js';
+import { db } from '../firebase.js';
+import admin from 'firebase-admin';
 
 const delay = (ms) => new Promise((res) => setTimeout(res, ms));
 const arredondar = (num) => Math.round(Number(num) * 100) / 100;
@@ -25,6 +27,15 @@ export async function processarWebhookPagamento(paymentData) {
       return;
     }
 
+    // 🔒 Verifica se o pagamento já foi processado
+    const paymentRef = db.collection("pagamentos_processados").doc(String(paymentId));
+    const paymentDoc = await paymentRef.get();
+    if (paymentDoc.exists) {
+      console.warn(`[Webhook] Pagamento ${paymentId} já processado. Ignorando...`);
+      return;
+    }
+
+    // 🔄 Tenta buscar o pagamento
     let pagamento = null;
     const tentativas = 5;
     for (let i = 0; i < tentativas; i++) {
@@ -79,7 +90,6 @@ export async function processarWebhookPagamento(paymentData) {
     let dadosUsuario = {};
     try {
       dadosUsuario = JSON.parse(Buffer.from(formDataEncoded, 'base64').toString('utf8'));
-
       dadosUsuario.incluiTreino = dadosUsuario.incluiTreino === true || dadosUsuario.incluiTreino === 'true';
       dadosUsuario.incluiDiaLixo = dadosUsuario.incluiDiaLixo === true || dadosUsuario.incluiDiaLixo === 'true';
 
@@ -102,7 +112,6 @@ export async function processarWebhookPagamento(paymentData) {
 
     const incluiEbookRaw = metadata.incluiEbook || metadata.inclui_ebook;
     const incluiEbook = incluiEbookRaw === true || incluiEbookRaw === 'true';
-    console.log('[Webhook] Flag final incluiEbook (boolean):', incluiEbook);
 
     const linkEbook = incluiEbook
       ? 'https://firebasestorage.googleapis.com/v0/b/nutrify-2ca2d.firebasestorage.app/o/7%20Dietas%20F%C3%A1ceis%20e%20Pr%C3%A1ticas%20para%20Perder%20at%C3%A9%2020%25%20de%20Peso%20em%201%20M%C3%AAs.pdf?alt=media&token=675a4ebd-2b9b-439f-9053-f6f9a6a2d904'
@@ -112,14 +121,21 @@ export async function processarWebhookPagamento(paymentData) {
 
     await enviarEmailComPDF(email, dadosUsuario.nome || 'Seu Plano', pdfBuffer, linkEbook);
     console.log(`[Webhook] E-mail com PDF enviado para ${email}`);
-    
+
     const planoNome = metadata.plano || 'Indefinido';
     await registrarConversao(email, planoNome, valorPago);
 
-    // ✅ Salvar no Firebase
     await salvarDieta(email, dadosUsuario, receita, valorPago, tipoReceita, incluiEbook, id);
-
     console.log(`[Webhook] Dieta salva no Firestore`);
+
+    // ✅ Marca o pagamento como processado
+    await paymentRef.set({
+      processedAt: admin.firestore.Timestamp.now(),
+      email,
+      valor: valorPago,
+      plano: planoNome
+    });
+
     console.log(`[Webhook] Processo finalizado com sucesso para pagamento ${id}`);
   } catch (err) {
     console.error('[Webhook] Erro fatal no processamento do webhook:', err);
