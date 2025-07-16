@@ -4,6 +4,7 @@ import { buscarPagamento, buscarViaMerchantOrder } from './mercadoPagoService.js
 import { gerarPDF } from './gerarPDF.js';
 import { gerarHTMLReceita } from './gerarHTML.js';
 import { salvarDieta } from './databaseService.js';
+import { registrarConversao } from './conversaoService.js';
 
 const delay = (ms) => new Promise((res) => setTimeout(res, ms));
 const arredondar = (num) => Math.round(Number(num) * 100) / 100;
@@ -111,6 +112,9 @@ export async function processarWebhookPagamento(paymentData) {
 
     await enviarEmailComPDF(email, dadosUsuario.nome || 'Seu Plano', pdfBuffer, linkEbook);
     console.log(`[Webhook] E-mail com PDF enviado para ${email}`);
+    
+    const planoNome = metadata.plano || 'Indefinido';
+    await registrarConversao(email, planoNome, valorPago);
 
     // ✅ Salvar no Firebase
     await salvarDieta(email, dadosUsuario, receita, valorPago, tipoReceita, incluiEbook, id);

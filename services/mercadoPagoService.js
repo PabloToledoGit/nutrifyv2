@@ -58,11 +58,13 @@ export async function criarPagamento({
     email,
     valor: valorConvertido,
     tipoReceita,
+    plano: formData.planoNome || 'Indefinido',
     incluiEbook: incluiEbook === true || incluiEbook === 'true' ? 'true' : 'false',
     incluiTreino: formData.incluiTreino === true || formData.incluiTreino === 'true' ? 'true' : 'false',
     incluiDiaLixo: formData.incluiDiaLixo === true || formData.incluiDiaLixo === 'true' ? 'true' : 'false',
     formData: Buffer.from(JSON.stringify(formData)).toString('base64')
   };
+
 
   const items = [
     {
