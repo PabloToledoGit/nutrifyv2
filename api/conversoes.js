@@ -1,6 +1,6 @@
 // pages/api/admin/conversoes.js ou routes/admin/conversoes.js
 
-import { db } from '../../firebase.js'; // ajuste o caminho se necessário
+import { db } from '../firebase'; // ajuste o caminho se necessário
 
 export default async function handler(req, res) {
   try {
