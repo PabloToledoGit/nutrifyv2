@@ -1,8 +1,9 @@
-// api/conversoes.js
 import { db } from '../firebase.js';
-import allowCors from '../utils/cors.js';
+import { setCors } from '../utils/cors.js';
 
-async function handler(req, res) {
+export default async function handler(req, res) {
+  if (setCors(req, res)) return;
+
   try {
     const geralSnap = await db.collection('conversoes').doc('geral').get();
     const porPlanoSnap = await db.collection('conversoes').doc('porPlano').get();
@@ -35,5 +36,3 @@ async function handler(req, res) {
     res.status(500).json({ error: 'Erro ao buscar dados das conversões.' });
   }
 }
-
-export default allowCors(handler);
