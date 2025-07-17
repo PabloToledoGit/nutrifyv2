@@ -1,6 +1,5 @@
-// pages/api/admin/conversoes.js ou routes/admin/conversoes.js
-
-import { db } from '../firebase'; // ajuste o caminho se necessário
+// pages/api/admin/conversoes.js
+import { db } from '../firebase'; // ajuste conforme seu path
 
 export default async function handler(req, res) {
   try {
@@ -10,19 +9,22 @@ export default async function handler(req, res) {
     const geral = geralSnap.exists ? geralSnap.data() : {};
     const porPlano = porPlanoSnap.exists ? porPlanoSnap.data() : {};
 
-    // Buscar últimas conversões dos usuários (exemplo limitado a 10)
-    const usuariosSnapshot = await db.collection('conversoes')
-      .where('__name__', '>=', 'porUsuario_')
-      .limit(10)
-      .get();
+    // Busca documentos com prefixo porUsuario_
+    const allDocs = await db.collection('conversoes').listDocuments();
+    const userDocs = allDocs.filter(doc => doc.id.startsWith('porUsuario_'));
 
     const ultimas = [];
-    usuariosSnapshot.forEach(doc => {
+
+    for (const docRef of userDocs) {
+      const doc = await docRef.get();
       const data = doc.data();
+
       if (data.ultimas && Array.isArray(data.ultimas)) {
-        data.ultimas.forEach(item => ultimas.push({ ...item, usuario: doc.id.replace('porUsuario_', '') }));
+        data.ultimas.forEach(item =>
+          ultimas.push({ ...item, usuario: doc.id.replace('porUsuario_', '') })
+        );
       }
-    });
+    }
 
     // Ordena por data decrescente
     ultimas.sort((a, b) => new Date(b.data) - new Date(a.data));
@@ -30,7 +32,7 @@ export default async function handler(req, res) {
     res.status(200).json({
       geral,
       porPlano,
-      ultimas: ultimas.slice(0, 10), // retorna só as 10 mais recentes
+      ultimas: ultimas.slice(0, 10),
     });
   } catch (err) {
     console.error('[Admin] Erro ao buscar dados:', err);
