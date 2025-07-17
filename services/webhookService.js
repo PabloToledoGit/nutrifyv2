@@ -27,7 +27,6 @@ export async function processarWebhookPagamento(paymentData) {
       return;
     }
 
-    // 🔒 Verifica se o pagamento já foi processado
     const paymentRef = db.collection("pagamentos_processados").doc(String(paymentId));
     const paymentDoc = await paymentRef.get();
     if (paymentDoc.exists) {
@@ -35,7 +34,6 @@ export async function processarWebhookPagamento(paymentData) {
       return;
     }
 
-    // 🔄 Tenta buscar o pagamento
     let pagamento = null;
     const tentativas = 5;
     for (let i = 0; i < tentativas; i++) {
@@ -60,9 +58,15 @@ export async function processarWebhookPagamento(paymentData) {
 
     const { id, status, metadata = {}, transaction_amount, payer = {}, additional_info = {} } = pagamento;
 
-    if ((status || '').toLowerCase() !== 'approved') {
+    const isTestMode = process.env.TEST_MODE === 'true';
+
+    if (!isTestMode && (status || '').toLowerCase() !== 'approved') {
       console.log(`[Webhook] Pagamento ${id} com status "${status}". Ignorado.`);
       return;
+    }
+
+    if (isTestMode) {
+      console.log(`[Webhook] TEST_MODE ativo. Simulando aprovação para pagamento com status "${status}"`);
     }
 
     console.log('[Webhook] Metadata bruta recebida:', metadata);
@@ -124,11 +128,8 @@ export async function processarWebhookPagamento(paymentData) {
 
     const planoNome = metadata.plano || 'Indefinido';
     await registrarConversao(email, planoNome, valorPago);
-
     await salvarDieta(email, dadosUsuario, receita, valorPago, tipoReceita, incluiEbook, id);
-    console.log(`[Webhook] Dieta salva no Firestore`);
 
-    // ✅ Marca o pagamento como processado
     await paymentRef.set({
       processedAt: admin.firestore.Timestamp.now(),
       email,
