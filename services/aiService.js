@@ -32,13 +32,13 @@ export const gerarTextoReceita = async (userData) => {
   console.log("[Prompt] lixoAtivo:", lixoAtivo);
 
 
-  const prompt = `
+const prompt = `
 **Atenção: Priorize o histórico de saúde do cliente em todas as decisões da dieta e treino. Nenhum alimento, suplemento ou atividade deve ser recomendada caso contrarie restrições ou condições descritas.**
 
 Histórico de saúde informado pelo cliente:
 ${historicoSaude}
 
-Utilize os dados abaixo para gerar um plano nutricional${treinoAtivo ? ' e de treino' : ''} personalizado em **HTML e CSS embutido**, com aparência visual semelhante ao plano "Dieta NutriInteligente" mas adaptado à identidade moderna e limpa do Nutrify (tons de verde, blocos bem definidos, títulos claros e seções bem divididas).
+Utilize os dados abaixo para gerar um plano nutricional${treinoAtivo ? ' e de treino' : ''} personalizado em **HTML e CSS embutido**, com aparência visual semelhante ao plano "Dieta NutriInteligente", mas adaptado à identidade moderna e limpa do Nutrify (tons de verde, blocos bem definidos, títulos claros e seções bem divididas).
 
 Informações do Usuário:
 - Nome do Plano: ${planoNome}
@@ -60,10 +60,24 @@ Preferências Alimentares:
 - Inclua um aviso de exclusividade e privacidade no topo
 - Calcule e explique o **IMC** e a **ingestão ideal de água**
 - Divida as **refeições** com:
-  - Título com horário e calorias da refeição
-  - 3 a 4 opções de cardápio com quantidades em gramas
-  - Total de calorias por refeição proporcional: Café (20%), Lanche Manhã (15%), Almoço (25%), Lanche Tarde (15%), Jantar (25%)
-- Inclua **substituições** inteligentes para proteína, carbo e gordura se possível
+  - Título com horário e calorias estimadas da refeição
+  - Para cada refeição, siga a proporção calórica do total diário:
+    - Café da Manhã: 20%
+    - Lanche da Manhã: 15%
+    - Almoço: 25%
+    - Lanche da Tarde: 15%
+    - Jantar: 25%
+  - Apresente **exatamente 3 opções diferentes**, rotuladas como:
+    - Opção 1:
+    - Opção 2:
+    - Opção 3:
+  - Cada opção deve conter:
+    - Uma refeição completa individual com porções em gramas ou unidades
+    - Calorias **aproximadamente iguais** entre as opções (máximo de 10% de variação)
+    - Macros equilibrados com base no objetivo e no histórico de saúde
+  - Nunca induzir o cliente a consumir mais de uma opção por refeição
+
+- Inclua **substituições inteligentes** para proteínas, carboidratos e gorduras, respeitando o histórico de saúde
 - **Sugira hábitos saudáveis e suplementos** com base no objetivo (respeitando o histórico de saúde)
 
 ${lixoAtivo ? `
@@ -85,7 +99,6 @@ ${lixoAtivo ? `
 - Finalize com um reforço motivacional, como:
   - “A liberdade com consciência é o segredo de uma dieta sustentável.”
 ` : ''}
-
 
 ${treinoAtivo ? `
 🏋️ **Inclua uma seção completa chamada "Plano de Treino Personalizado":**
@@ -114,7 +127,6 @@ ${treinoAtivo ? `
   - “Treino inteligente é aquele que respeita seu corpo e avança junto com ele.”
 ` : ''}
 
-
 💡 Estrutura HTML:
 - Use <h1>, <h2>, <h3> para os títulos
 - <p> para explicações e dados
@@ -130,6 +142,7 @@ ${treinoAtivo ? `
 
 Visual clean, leve, bonito e organizado — com cara de eBook, mas sem excesso de firula.
 `;
+
 
   try {
     const completion = await openai.chat.completions.create({
