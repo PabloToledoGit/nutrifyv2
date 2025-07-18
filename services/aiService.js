@@ -1,4 +1,3 @@
-// services/recipeService.js
 import OpenAI from 'openai';
 
 const openai = new OpenAI({
@@ -11,28 +10,62 @@ export const gerarTextoReceita = async (userData) => {
     altura,
     idade,
     genero,
-    objetivo,
     calorias,
     alimentosSelecionadosCafe,
     alimentosSelecionadosAlmoco,
     alimentosSelecionadosLanche,
     alimentosSelecionadosJanta,
-    frequenciaTreino,
+    nivelAtividade,
     planoNome,
     historicoSaude = "",
     incluiTreino = false,
     incluiDiaLixo = false
   } = userData;
 
-  // 🔒 Corrigir possíveis tipos incorretos de boolean vindo como string
   const treinoAtivo = String(incluiTreino).toLowerCase() === 'true' || incluiTreino === true;
   const lixoAtivo = String(incluiDiaLixo).toLowerCase() === 'true' || incluiDiaLixo === true;
+
+  // Cálculo do IMC
+  const alturaEmMetros = altura / 100;
+  const imc = peso / (alturaEmMetros * alturaEmMetros);
+
+  // Classificação do IMC
+  let categoriaIMC = "";
+  if (imc < 18.5) categoriaIMC = "Baixo";
+  else if (imc < 25) categoriaIMC = "Eutrófico";
+  else if (imc < 30) categoriaIMC = "Sobrepeso";
+  else if (imc < 35) categoriaIMC = "Obesidade I";
+  else if (imc < 40) categoriaIMC = "Obesidade II";
+  else categoriaIMC = "Obesidade III";
+
+  // Proteína por kg conforme IMC + Gênero
+  const tabelaProteina = {
+    Masculino: {
+      "Baixo": 2.2,
+      "Eutrófico": 2.0,
+      "Sobrepeso": 1.8,
+      "Obesidade I": 1.6,
+      "Obesidade II": 1.4,
+      "Obesidade III": 1.2,
+    },
+    Feminino: {
+      "Baixo": 2.2,
+      "Eutrófico": 1.9,
+      "Sobrepeso": 1.6,
+      "Obesidade I": 1.4,
+      "Obesidade II": 1.2,
+      "Obesidade III": 1.0,
+    }
+  };
+
+  const proteinaPorKg = tabelaProteina[genero]?.[categoriaIMC] || 2.0;
+  const proteinaTotalG = Math.round(peso * proteinaPorKg);
+  const proteinaKcal = proteinaTotalG * 4;
 
   console.log("[Prompt] treinoAtivo:", treinoAtivo);
   console.log("[Prompt] lixoAtivo:", lixoAtivo);
 
-
-const prompt = `
+  const prompt = `
 **Atenção: Priorize o histórico de saúde do cliente em todas as decisões da dieta e treino. Nenhum alimento, suplemento ou atividade deve ser recomendada caso contrarie restrições ou condições descritas.**
 
 Histórico de saúde informado pelo cliente:
@@ -46,9 +79,9 @@ Informações do Usuário:
 - Altura: ${altura} cm
 - Idade: ${idade} anos
 - Gênero: ${genero}
-- Objetivo: ${objetivo}
-- Calorias diárias: ${calorias}
-- Frequência de treino: ${frequenciaTreino}
+- IMC: ${imc.toFixed(2)} (${categoriaIMC})
+- Nível de Atividade Física: ${nivelAtividade} (multiplicador da fórmula Harris-Benedict)
+- Calorias diárias estimadas: ${calorias}
 
 Preferências Alimentares:
 - Café da Manhã: ${alimentosSelecionadosCafe}
@@ -59,6 +92,15 @@ Preferências Alimentares:
 📌 **Regras para o Plano:**
 - Inclua um aviso de exclusividade e privacidade no topo
 - Calcule e explique o **IMC** e a **ingestão ideal de água**
+- Calcule os **macronutrientes diários** com base nas calorias e peso corporal:
+  - **Proteína:** ${proteinaPorKg.toFixed(1)}g por kg de peso corporal (ex: ${peso}kg × ${proteinaPorKg} = ${proteinaTotalG}g proteína = ${proteinaKcal} kcal)
+  - **Gordura:** 1.0g por kg de peso corporal (ex: ${peso}g = ${peso * 9} kcal)
+  - **Carboidrato:** Use o restante das calorias totais após calcular proteína e gordura
+  - Use a conversão padrão:
+    - Proteína e Carboidrato = 4 kcal/g
+    - Gordura = 9 kcal/g
+- Mostre a distribuição total dos macros com gramas e calorias, em um bloco explicativo
+
 - Divida as **refeições** com:
   - Título com horário e calorias estimadas da refeição
   - Para cada refeição, siga a proporção calórica do total diário:
@@ -74,7 +116,7 @@ Preferências Alimentares:
   - Cada opção deve conter:
     - Uma refeição completa individual com porções em gramas ou unidades
     - Calorias **aproximadamente iguais** entre as opções (máximo de 10% de variação)
-    - Macros equilibrados com base no objetivo e no histórico de saúde
+    - Macros equilibrados com base no cálculo diário
   - Nunca induzir o cliente a consumir mais de uma opção por refeição
 
 - Inclua **substituições inteligentes** para proteínas, carboidratos e gorduras, respeitando o histórico de saúde
@@ -83,48 +125,23 @@ Preferências Alimentares:
 ${lixoAtivo ? `
 🍕 **Inclua uma seção completa chamada "Dia do Lixo":**
 - Título: “Dia do Lixo”
-- Parágrafo explicando detalhadamente o conceito de refeição livre:
-  - A ideia do Dia do Lixo é oferecer uma flexibilidade estratégica para reduzir a ansiedade alimentar, melhorar a adesão à dieta e estimular o metabolismo.
-  - Explique que não se trata de uma licença para exagerar, mas sim de uma oportunidade planejada de consumir alimentos que normalmente não fazem parte da dieta.
-- Liste orientações práticas claras, como:
-  - Dê preferência a 1 refeição livre (e não o dia inteiro)
-  - Evite exageros que possam comprometer a digestão ou o bem-estar no dia seguinte
-  - Evite consumo excessivo de álcool ou frituras em excesso
-  - Mastigue bem, saboreie o momento e evite culpa
-- Sugira alimentos que podem ser incluídos como exemplo (pizza, hambúrguer artesanal, sobremesa moderada etc.)
-- Indique o **melhor momento da semana para aplicar**, considerando o objetivo:
-  - Emagrecimento: Sábado à noite ou Domingo no almoço
-  - Hipertrofia: Após o treino mais intenso da semana
-  - Reeducação alimentar: Em eventos sociais ou comemorações
-- Finalize com um reforço motivacional, como:
-  - “A liberdade com consciência é o segredo de uma dieta sustentável.”
+- Parágrafo explicando detalhadamente o conceito de refeição livre
+- Sugira alimentos que podem ser incluídos como exemplo
+- Indique o **melhor momento da semana para aplicar**, considerando o objetivo
+- Finalize com um reforço motivacional
 ` : ''}
 
 ${treinoAtivo ? `
 🏋️ **Inclua uma seção completa chamada "Plano de Treino Personalizado":**
 - Título: "Plano de Treino Semanal"
-- Apresente um parágrafo explicando que o treino é adaptado conforme objetivo, frequência e histórico de saúde informado.
-- Divida a semana com foco muscular e com objetivos claros:
-  - Segunda: Peito + Tríceps
-  - Terça: Costas + Bíceps
-  - Quarta: Pernas + Glúteos
-  - Quinta: Abdômen + Cardio
-  - Sexta: Corpo inteiro (Fullbody) ou circuito funcional
-  - Sábado: Alongamento, yoga ou descanso ativo
-  - Domingo: Descanso total ou caminhada leve
-- Para cada dia, liste de 4 a 6 exercícios com:
-  - Nome do exercício
-  - Número de séries
+- Divida a semana com foco muscular
+- Liste de 4 a 6 exercícios por dia com:
+  - Nome
+  - Séries
   - Repetições
-  - Tempo de descanso
-  - Dicas técnicas (postura, respiração, execução)
-- Adicione variações para treinos em casa e com ou sem equipamentos (halteres, elásticos, peso corporal)
-- Inclua observações específicas como:
-  - Como ajustar a carga de acordo com o nível do aluno
-  - Como identificar sinais de overtraining ou dores indevidas
-  - Como progredir a dificuldade ao longo das semanas
-- Finalize com um bloco motivacional:
-  - “Treino inteligente é aquele que respeita seu corpo e avança junto com ele.”
+  - Descanso
+  - Dicas técnicas
+- Inclua variações para treino em casa e sem equipamentos
 ` : ''}
 
 💡 Estrutura HTML:
@@ -132,7 +149,7 @@ ${treinoAtivo ? `
 - <p> para explicações e dados
 - <ul><li> para listas de alimentos ou exercícios
 - Não use <table>
-- Inclua classes CSS inline com estilo leve (como se fosse um layout bonito, mas que será renderizado direto no navegador ou convertido em PDF)
+- Inclua classes CSS inline com estilo leve
 - O conteúdo deve estar dentro de: <div class='receita'> ... </div>
 
 ⚠️ Importante:
@@ -143,7 +160,6 @@ ${treinoAtivo ? `
 Visual clean, leve, bonito e organizado — com cara de eBook, mas sem excesso de firula.
 `;
 
-
   try {
     const completion = await openai.chat.completions.create({
       model: "gpt-4o",
@@ -153,7 +169,7 @@ Visual clean, leve, bonito e organizado — com cara de eBook, mas sem excesso d
 
     let resposta = completion.choices?.[0]?.message?.content || "";
 
-    // 🚫 Remover blocos ```html e ```
+    // 🚫 Remove blocos ```html e ```
     resposta = resposta.replace(/```html|```/g, "").trim();
 
     if (!resposta) {
