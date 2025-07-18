@@ -10,7 +10,6 @@ export const gerarTextoReceita = async (userData) => {
     altura,
     idade,
     genero,
-    calorias,
     alimentosSelecionadosCafe,
     alimentosSelecionadosAlmoco,
     alimentosSelecionadosLanche,
@@ -62,25 +61,38 @@ export const gerarTextoReceita = async (userData) => {
   const proteinaTotalG = Math.round(peso * proteinaPorKg);
   const proteinaKcal = proteinaTotalG * 4;
 
-  // 💡 Novo cálculo de ajuste calórico com base no plano e IMC
-  let ajusteCalorias = 0;
+  // Cálculo da TMB
+  const tmb = genero === "Masculino"
+    ? 66 + (13.75 * peso) + (5 * altura) - (6.75 * idade)
+    : 655 + (9.56 * peso) + (1.85 * altura) - (4.68 * idade);
 
+  // Correção do FA conforme IMC + plano
+  let fatorAtividadeOriginal = parseFloat(nivelAtividade);
+  let fatorAtividadeCorrigido = fatorAtividadeOriginal;
+  const planoEmagrecimento = planoNome?.toLowerCase().includes("emagrecer");
+  const sobrepesoOuMais = ["Sobrepeso", "Obesidade I", "Obesidade II", "Obesidade III"].includes(categoriaIMC);
+
+  if (planoEmagrecimento && sobrepesoOuMais) {
+    if (fatorAtividadeOriginal <= 1.2) fatorAtividadeCorrigido = 1.0;
+    else if (fatorAtividadeOriginal <= 1.375) fatorAtividadeCorrigido = 1.1;
+    else if (fatorAtividadeOriginal <= 1.55) fatorAtividadeCorrigido = 1.3;
+    else if (fatorAtividadeOriginal <= 1.725) fatorAtividadeCorrigido = 1.4;
+    else fatorAtividadeCorrigido = 1.5;
+  }
+
+  const calorias = Math.round(tmb * fatorAtividadeCorrigido);
+
+  // Ajuste calórico final
+  let ajusteCalorias = 0;
   if (planoNome.toLowerCase().includes("emagrecer power")) {
-    ajusteCalorias = -Math.round(Math.random() * 100 + 600); // entre -600 e -700
+    ajusteCalorias = -Math.round(Math.random() * 100 + 600); // -600 a -700
   } else if (planoNome.toLowerCase().includes("emagrecer") || categoriaIMC === "Sobrepeso" || categoriaIMC.includes("Obesidade")) {
-    ajusteCalorias = -500; // emagrecimento padrão
+    ajusteCalorias = -500;
   } else if (planoNome.toLowerCase().includes("hipertrofia")) {
-    if (categoriaIMC === "Baixo" || categoriaIMC === "Eutrófico") {
-      ajusteCalorias = 300;
-    } else {
-      ajusteCalorias = -500; // se tiver sobrepeso, prioridade é emagrecer
-    }
-  } else {
-    ajusteCalorias = 0; // plano padrão
+    ajusteCalorias = (categoriaIMC === "Baixo" || categoriaIMC === "Eutrófico") ? 300 : -500;
   }
 
   const caloriasAjustadas = Math.round(calorias + ajusteCalorias);
-
 
   console.log("[Prompt] treinoAtivo:", treinoAtivo);
   console.log("[Prompt] lixoAtivo:", lixoAtivo);
@@ -100,9 +112,8 @@ Informações do Usuário:
 - Idade: ${idade} anos
 - Gênero: ${genero}
 - IMC: ${imc.toFixed(2)} (${categoriaIMC})
-- Nível de Atividade Física: ${nivelAtividade} (multiplicador da fórmula Harris-Benedict)
-- Calorias diárias estimadas (ajustadas): ${caloriasAjustadas} (a quantidade de calorias deve ser visível no topo do plano)
-
+- Nível de Atividade Física: ${nivelAtividade} (original) / ${fatorAtividadeCorrigido} (ajustado)
+- Calorias diárias estimadas (ajustadas): ${caloriasAjustadas} kcal
 
 Preferências Alimentares:
 - Café da Manhã: ${alimentosSelecionadosCafe}
@@ -114,71 +125,67 @@ Preferências Alimentares:
 - Inclua um aviso de exclusividade e privacidade no topo
 - Calcule e explique o **IMC** e a **ingestão ideal de água**
 - Calcule os **macronutrientes diários** com base nas calorias e peso corporal:
-  - **Proteína:** ${proteinaPorKg.toFixed(1)}g por kg de peso corporal (ex: ${peso}kg × ${proteinaPorKg} = ${proteinaTotalG}g proteína = ${proteinaKcal} kcal)
-  - **Gordura:** 1.0g por kg de peso corporal (ex: ${peso}g = ${peso * 9} kcal)
-  - **Carboidrato:** Use o restante das calorias totais após calcular proteína e gordura
-  - Use a conversão padrão:
-    - Proteína e Carboidrato = 4 kcal/g
+  - **Proteína:** ${proteinaPorKg.toFixed(1)}g/kg (ex: ${peso}kg × ${proteinaPorKg} = ${proteinaTotalG}g proteína = ${proteinaKcal} kcal)
+  - **Gordura:** 1g/kg = ${peso}g gordura = ${peso * 9} kcal
+  - **Carboidrato:** Use o restante das calorias totais
+  - Conversão:
+    - Proteína/Carboidrato = 4 kcal/g
     - Gordura = 9 kcal/g
 - Mostre a distribuição total dos macros com gramas e calorias, em um bloco explicativo
 
 - Divida as **refeições** com:
-  - Título com horário e calorias estimadas da refeição
-  - Para cada refeição, siga a proporção calórica do total diário:
+  - Título com horário e calorias estimadas
+  - Siga a divisão calórica:
     - Café da Manhã: 20%
     - Lanche da Manhã: 15%
     - Almoço: 25%
     - Lanche da Tarde: 15%
     - Jantar: 25%
-  - Apresente **exatamente 3 opções diferentes**, rotuladas como:
+  - Para cada refeição, apresente 3 opções:
     - Opção 1:
     - Opção 2:
     - Opção 3:
-  - Cada opção deve conter:
-    - Uma refeição completa individual com porções em gramas ou unidades
-    - Calorias **aproximadamente iguais** entre as opções (máximo de 10% de variação)
-    - Macros equilibrados com base no cálculo diário
-  - Nunca induzir o cliente a consumir mais de uma opção por refeição
+  - Cada uma com:
+    - Porções em gramas/unidades
+    - Calorias semelhantes (±10%)
+    - Macros equilibrados
+  - Nunca oriente o cliente a consumir mais de uma opção por refeição
 
-- Inclua **substituições inteligentes** para proteínas, carboidratos e gorduras, respeitando o histórico de saúde
-- **Sugira hábitos saudáveis e suplementos** com base no objetivo (respeitando o histórico de saúde)
+- Inclua substituições inteligentes para proteínas, carboidratos e gorduras
+- Sugira hábitos saudáveis e suplementos conforme objetivo (respeitando histórico)
 
 ${lixoAtivo ? `
-🍕 **Inclua uma seção completa chamada "Dia do Lixo":**
-- Título: “Dia do Lixo”
-- Parágrafo explicando detalhadamente o conceito de refeição livre
-- Sugira alimentos que podem ser incluídos como exemplo
-- Indique o **melhor momento da semana para aplicar**, considerando o objetivo
-- Finalize com um reforço motivacional
+🍕 **Inclua uma seção chamada "Dia do Lixo"**:
+- Explique o conceito
+- Sugira alimentos
+- Recomende o melhor dia da semana
+- Finalize com incentivo/motivação
 ` : ''}
 
 ${treinoAtivo ? `
-🏋️ **Inclua uma seção completa chamada "Plano de Treino Personalizado":**
-- Título: "Plano de Treino Semanal"
+🏋️ **Inclua uma seção chamada "Plano de Treino Personalizado"**:
 - Divida a semana com foco muscular
-- Liste de 4 a 6 exercícios por dia com:
-  - Nome
-  - Séries
-  - Repetições
-  - Descanso
+- Para cada dia:
+  - Exercícios (4 a 6)
+  - Séries, repetições, descanso
   - Dicas técnicas
-- Inclua variações para treino em casa e sem equipamentos
+- Inclua variações para treino em casa
 ` : ''}
 
-💡 Estrutura HTML:
-- Use <h1>, <h2>, <h3> para os títulos
-- <p> para explicações e dados
-- <ul><li> para listas de alimentos ou exercícios
-- Não use <table>
-- Inclua classes CSS inline com estilo leve
-- O conteúdo deve estar dentro de: <div class='receita'> ... </div>
+💡 HTML:
+- Use <h1>, <h2>, <h3> para títulos
+- <p> para explicações
+- <ul><li> para listas
+- Não usar <table>
+- Estilo CSS inline e leve
+- Envolver tudo em <div class='receita'> ... </div>
 
-⚠️ Importante:
-- **Não inclua** <html>, <head>, <body>, nem markdown
-- **Não use comentários**
-- O conteúdo gerado deve ser colado diretamente na função gerarHTMLReceita()
+⚠️ Atenção:
+- Não inclua <html>, <head> ou <body>
+- Não use markdown
+- Não insira comentários no código
 
-Visual clean, leve, bonito e organizado — com cara de eBook, mas sem excesso de firula.
+Visual moderno, leve, com cara de eBook profissional.
 `;
 
   try {
@@ -189,8 +196,6 @@ Visual clean, leve, bonito e organizado — com cara de eBook, mas sem excesso d
     });
 
     let resposta = completion.choices?.[0]?.message?.content || "";
-
-    // 🚫 Remove blocos ```html e ```
     resposta = resposta.replace(/```html|```/g, "").trim();
 
     if (!resposta) {
