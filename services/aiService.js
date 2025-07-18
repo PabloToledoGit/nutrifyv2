@@ -101,7 +101,7 @@ Informações do Usuário:
 - Gênero: ${genero}
 - IMC: ${imc.toFixed(2)} (${categoriaIMC})
 - Nível de Atividade Física: ${nivelAtividade} (multiplicador da fórmula Harris-Benedict)
-- Calorias diárias estimadas (ajustadas): ${caloriasAjustadas}
+- Calorias diárias estimadas (ajustadas): ${caloriasAjustadas} (a quantidade de calorias deve ser visível no topo do plano)
 
 
 Preferências Alimentares:
