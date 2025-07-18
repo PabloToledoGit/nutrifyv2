@@ -10,7 +10,7 @@ export const gerarTextoReceita = async (userData) => {
     altura,
     idade,
     genero,
-    calorias,
+    calorias: caloriasBase,
     alimentosSelecionadosCafe,
     alimentosSelecionadosAlmoco,
     alimentosSelecionadosLanche,
@@ -25,11 +25,9 @@ export const gerarTextoReceita = async (userData) => {
   const treinoAtivo = String(incluiTreino).toLowerCase() === 'true' || incluiTreino === true;
   const lixoAtivo = String(incluiDiaLixo).toLowerCase() === 'true' || incluiDiaLixo === true;
 
-  // Cálculo do IMC
   const alturaEmMetros = altura / 100;
   const imc = peso / (alturaEmMetros * alturaEmMetros);
 
-  // Classificação do IMC
   let categoriaIMC = "";
   if (imc < 18.5) categoriaIMC = "Baixo";
   else if (imc < 25) categoriaIMC = "Eutrófico";
@@ -38,7 +36,6 @@ export const gerarTextoReceita = async (userData) => {
   else if (imc < 40) categoriaIMC = "Obesidade II";
   else categoriaIMC = "Obesidade III";
 
-  // Proteína por kg conforme IMC + Gênero
   const tabelaProteina = {
     Masculino: {
       "Baixo": 2.2,
@@ -62,6 +59,23 @@ export const gerarTextoReceita = async (userData) => {
   const proteinaTotalG = Math.round(peso * proteinaPorKg);
   const proteinaKcal = proteinaTotalG * 4;
 
+  // 🔥 Ajuste de calorias com base no plano e IMC
+  let calorias = caloriasBase;
+  if (planoNome?.toLowerCase().includes("emagrecer power")) {
+    calorias = Math.round(caloriasBase - (Math.random() * 100 + 600)); // -600 a -700
+  } else if (planoNome?.toLowerCase().includes("emagrecer") || categoriaIMC === "Sobrepeso" || categoriaIMC.includes("Obesidade")) {
+    calorias = Math.round(caloriasBase - 500);
+  } else if (planoNome?.toLowerCase().includes("massa") || planoNome?.toLowerCase().includes("hipertrofia")) {
+    if (categoriaIMC === "Baixo" || categoriaIMC === "Eutrófico") {
+      calorias = Math.round(caloriasBase + 300);
+    } else {
+      calorias = Math.round(caloriasBase - 500);
+    }
+  }
+
+  // Arredondar para valor mais próximo de 50 (ex: 1932 → 1950)
+  calorias = Math.round(calorias / 50) * 50;
+
   console.log("[Prompt] treinoAtivo:", treinoAtivo);
   console.log("[Prompt] lixoAtivo:", lixoAtivo);
 
@@ -81,7 +95,7 @@ Informações do Usuário:
 - Gênero: ${genero}
 - IMC: ${imc.toFixed(2)} (${categoriaIMC})
 - Nível de Atividade Física: ${nivelAtividade} (multiplicador da fórmula Harris-Benedict)
-- Calorias diárias estimadas: ${calorias}
+- Calorias ajustadas para o plano: ${calorias}
 
 Preferências Alimentares:
 - Café da Manhã: ${alimentosSelecionadosCafe}
@@ -93,71 +107,41 @@ Preferências Alimentares:
 - Inclua um aviso de exclusividade e privacidade no topo
 - Calcule e explique o **IMC** e a **ingestão ideal de água**
 - Calcule os **macronutrientes diários** com base nas calorias e peso corporal:
-  - **Proteína:** ${proteinaPorKg.toFixed(1)}g por kg de peso corporal (ex: ${peso}kg × ${proteinaPorKg} = ${proteinaTotalG}g proteína = ${proteinaKcal} kcal)
-  - **Gordura:** 1.0g por kg de peso corporal (ex: ${peso}g = ${peso * 9} kcal)
-  - **Carboidrato:** Use o restante das calorias totais após calcular proteína e gordura
-  - Use a conversão padrão:
-    - Proteína e Carboidrato = 4 kcal/g
-    - Gordura = 9 kcal/g
-- Mostre a distribuição total dos macros com gramas e calorias, em um bloco explicativo
+  - **Proteína:** ${proteinaPorKg.toFixed(1)}g/kg (≈ ${proteinaTotalG}g = ${proteinaKcal} kcal)
+  - **Gordura:** 1g/kg (≈ ${peso}g = ${peso * 9} kcal)
+  - **Carboidrato:** Calorias restantes após proteína e gordura
+  - Conversões:
+    - Proteína e Carboidrato: 4 kcal/g
+    - Gordura: 9 kcal/g
+- Mostre os macros com gramas e calorias
 
-- Divida as **refeições** com:
-  - Título com horário e calorias estimadas da refeição
-  - Para cada refeição, siga a proporção calórica do total diário:
-    - Café da Manhã: 20%
-    - Lanche da Manhã: 15%
-    - Almoço: 25%
-    - Lanche da Tarde: 15%
-    - Jantar: 25%
-  - Apresente **exatamente 3 opções diferentes**, rotuladas como:
-    - Opção 1:
-    - Opção 2:
-    - Opção 3:
-  - Cada opção deve conter:
-    - Uma refeição completa individual com porções em gramas ou unidades
-    - Calorias **aproximadamente iguais** entre as opções (máximo de 10% de variação)
-    - Macros equilibrados com base no cálculo diário
-  - Nunca induzir o cliente a consumir mais de uma opção por refeição
+- Divida as refeições com:
+  - Horário + calorias estimadas
+  - 3 opções por refeição, bem balanceadas (10% de variação no máximo)
+  - Nunca oriente consumir mais de uma opção por refeição
 
-- Inclua **substituições inteligentes** para proteínas, carboidratos e gorduras, respeitando o histórico de saúde
-- **Sugira hábitos saudáveis e suplementos** com base no objetivo (respeitando o histórico de saúde)
+- Inclua substituições inteligentes e sugestões de hábitos/suplementos
 
 ${lixoAtivo ? `
-🍕 **Inclua uma seção completa chamada "Dia do Lixo":**
-- Título: “Dia do Lixo”
-- Parágrafo explicando detalhadamente o conceito de refeição livre
-- Sugira alimentos que podem ser incluídos como exemplo
-- Indique o **melhor momento da semana para aplicar**, considerando o objetivo
-- Finalize com um reforço motivacional
+🍕 **Seção "Dia do Lixo"**:
+- Explicação sobre refeição livre
+- Sugestões do que pode consumir
+- Melhor dia da semana
+- Reforço motivacional
 ` : ''}
 
 ${treinoAtivo ? `
-🏋️ **Inclua uma seção completa chamada "Plano de Treino Personalizado":**
-- Título: "Plano de Treino Semanal"
-- Divida a semana com foco muscular
-- Liste de 4 a 6 exercícios por dia com:
-  - Nome
-  - Séries
-  - Repetições
-  - Descanso
-  - Dicas técnicas
-- Inclua variações para treino em casa e sem equipamentos
+🏋️ **Seção de Treino**:
+- Treino semanal com 4 a 6 exercícios/dia
+- Nome, séries, repetições, descanso
+- Variações para treinar em casa
 ` : ''}
 
 💡 Estrutura HTML:
-- Use <h1>, <h2>, <h3> para os títulos
-- <p> para explicações e dados
-- <ul><li> para listas de alimentos ou exercícios
-- Não use <table>
-- Inclua classes CSS inline com estilo leve
-- O conteúdo deve estar dentro de: <div class='receita'> ... </div>
-
-⚠️ Importante:
-- **Não inclua** <html>, <head>, <body>, nem markdown
-- **Não use comentários**
-- O conteúdo gerado deve ser colado diretamente na função gerarHTMLReceita()
-
-Visual clean, leve, bonito e organizado — com cara de eBook, mas sem excesso de firula.
+- Use tags semânticas: <h1>, <p>, <ul>, etc
+- Inclua classes CSS inline
+- Todo conteúdo dentro de <div class='receita'>...</div>
+- Não use <html>, <head>, <body>, nem comentários
 `;
 
   try {
@@ -168,8 +152,6 @@ Visual clean, leve, bonito e organizado — com cara de eBook, mas sem excesso d
     });
 
     let resposta = completion.choices?.[0]?.message?.content || "";
-
-    // 🚫 Remove blocos ```html e ```
     resposta = resposta.replace(/```html|```/g, "").trim();
 
     if (!resposta) {
