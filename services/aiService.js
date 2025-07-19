@@ -37,7 +37,7 @@ export const gerarTextoReceita = async (userData) => {
   else if (imc < 40) categoriaIMC = "Obesidade II";
   else categoriaIMC = "Obesidade III";
 
-  // Proteína por kg conforme IMC + Gênero
+  // Tabela de proteína por IMC e gênero
   const tabelaProteina = {
     Masculino: {
       "Baixo": 2.2,
@@ -57,21 +57,14 @@ export const gerarTextoReceita = async (userData) => {
     }
   };
 
-// Proteína por kg conforme IMC + Gênero, com exceção para problemas renais
-let proteinaPorKg;
+  // Proteína ajustada caso problema renal
+  const temProblemaRenal = historicoSaude.toLowerCase().includes("renal");
+  let proteinaPorKg = temProblemaRenal
+    ? 1.0
+    : tabelaProteina[genero]?.[categoriaIMC] || 2.0;
 
-const temProblemaRenal = historicoSaude.toLowerCase().includes("renal");
-
-if (temProblemaRenal) {
-  proteinaPorKg = 1.0;
-  console.log("[Proteína] Limite aplicado por problema renal: 1.0g/kg");
-} else {
-  proteinaPorKg = tabelaProteina[genero]?.[categoriaIMC] || 2.0;
-}
-
-const proteinaTotalG = Math.round(peso * proteinaPorKg);
-const proteinaKcal = proteinaTotalG * 4;
-
+  const proteinaTotalG = Math.round(peso * proteinaPorKg);
+  const proteinaKcal = proteinaTotalG * 4;
 
   // Cálculo da TMB
   const tmb = genero === "Masculino"
@@ -106,6 +99,21 @@ const proteinaKcal = proteinaTotalG * 4;
 
   const caloriasAjustadas = Math.round(calorias + ajusteCalorias);
 
+  // Gordura por kg conforme calorias ajustadas
+  let gorduraPorKg;
+  if (caloriasAjustadas >= 2500) {
+    gorduraPorKg = 1.0;
+  } else if (caloriasAjustadas >= 2300) {
+    gorduraPorKg = 0.7;
+  } else if (caloriasAjustadas >= 2000) {
+    gorduraPorKg = 0.6;
+  } else {
+    gorduraPorKg = 0.5;
+  }
+
+  const gorduraTotalG = Math.round(peso * gorduraPorKg);
+  const gorduraKcal = gorduraTotalG * 9;
+
   console.log("[Prompt] treinoAtivo:", treinoAtivo);
   console.log("[Prompt] lixoAtivo:", lixoAtivo);
 
@@ -138,7 +146,7 @@ Preferências Alimentares:
 - Calcule e explique o **IMC** e a **ingestão ideal de água**
 - Calcule os **macronutrientes diários** com base nas calorias e peso corporal:
   - **Proteína:** ${proteinaPorKg.toFixed(1)}g/kg (ex: ${peso}kg × ${proteinaPorKg} = ${proteinaTotalG}g proteína = ${proteinaKcal} kcal)
-  - **Gordura:** 1g/kg = ${peso}g gordura = ${peso * 9} kcal
+  - **Gordura:** ${gorduraPorKg.toFixed(1)}g/kg (ex: ${peso}kg × ${gorduraPorKg} = ${gorduraTotalG}g gordura = ${gorduraKcal} kcal)
   - **Carboidrato:** Use o restante das calorias totais
   - Conversão:
     - Proteína/Carboidrato = 4 kcal/g
