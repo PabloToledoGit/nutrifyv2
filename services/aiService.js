@@ -206,6 +206,9 @@ ${treinoAtivo ? `
 - Não insira comentários no código
 
 Visual moderno, leve, com cara de eBook profissional.
+
+🛑 **Aviso Importante:** Esta dieta foi gerada automaticamente pela Nutrify com base nos dados fornecidos pelo usuário. Ela **não substitui uma consulta com um nutricionista qualificado**. Sempre que possível, busque acompanhamento profissional individualizado.
+
 `;
 
   try {
