@@ -143,6 +143,7 @@ Preferências Alimentares:
 
 📌 **Regras para o Plano:**
 - Inclua um aviso de exclusividade e privacidade no topo
+- Inclua um aviso de que é recomendavel trocar a dieta dentro de 20 a 30 dias no topo
 - Calcule e explique o **IMC** e a **ingestão ideal de água**
 - Calcule os **macronutrientes diários** com base nas calorias e peso corporal:
   - **Proteína:** ${proteinaPorKg.toFixed(1)}g/kg (ex: ${peso}kg × ${proteinaPorKg} = ${proteinaTotalG}g proteína = ${proteinaKcal} kcal)
