@@ -57,9 +57,21 @@ export const gerarTextoReceita = async (userData) => {
     }
   };
 
-  const proteinaPorKg = tabelaProteina[genero]?.[categoriaIMC] || 2.0;
-  const proteinaTotalG = Math.round(peso * proteinaPorKg);
-  const proteinaKcal = proteinaTotalG * 4;
+// Proteína por kg conforme IMC + Gênero, com exceção para problemas renais
+let proteinaPorKg;
+
+const temProblemaRenal = historicoSaude.toLowerCase().includes("renal");
+
+if (temProblemaRenal) {
+  proteinaPorKg = 1.0;
+  console.log("[Proteína] Limite aplicado por problema renal: 1.0g/kg");
+} else {
+  proteinaPorKg = tabelaProteina[genero]?.[categoriaIMC] || 2.0;
+}
+
+const proteinaTotalG = Math.round(peso * proteinaPorKg);
+const proteinaKcal = proteinaTotalG * 4;
+
 
   // Cálculo da TMB
   const tmb = genero === "Masculino"
