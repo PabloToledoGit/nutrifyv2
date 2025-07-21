@@ -57,7 +57,6 @@ export const gerarTextoReceita = async (userData) => {
     }
   };
 
-  // Proteína ajustada caso problema renal
   const temProblemaRenal = historicoSaude.toLowerCase().includes("renal");
   let proteinaPorKg = temProblemaRenal
     ? 1.0
@@ -71,7 +70,7 @@ export const gerarTextoReceita = async (userData) => {
     ? 66 + (13.75 * peso) + (5 * altura) - (6.75 * idade)
     : 655 + (9.56 * peso) + (1.85 * altura) - (4.68 * idade);
 
-  // Correção do FA conforme IMC + plano
+  // Correção do FA
   let fatorAtividadeOriginal = parseFloat(nivelAtividade);
   let fatorAtividadeCorrigido = fatorAtividadeOriginal;
   const planoEmagrecimento = planoNome?.toLowerCase().includes("emagrecer");
@@ -99,16 +98,29 @@ export const gerarTextoReceita = async (userData) => {
 
   const caloriasAjustadas = Math.round(calorias + ajusteCalorias);
 
-  // Gordura por kg conforme calorias ajustadas
+  // Cálculo melhorado para gordura
   let gorduraPorKg;
-  if (caloriasAjustadas >= 2500) {
-    gorduraPorKg = 1.0;
-  } else if (caloriasAjustadas >= 2300) {
-    gorduraPorKg = 0.7;
-  } else if (caloriasAjustadas >= 2000) {
-    gorduraPorKg = 0.6;
-  } else {
-    gorduraPorKg = 0.5;
+
+  switch (categoriaIMC) {
+    case "Sobrepeso":
+      gorduraPorKg = 0.7;
+      break;
+    case "Obesidade I":
+      gorduraPorKg = 0.6;
+      break;
+    case "Obesidade II":
+    case "Obesidade III":
+      gorduraPorKg = 0.5;
+      break;
+    case "Eutrófico":
+      if (caloriasAjustadas >= 3000) gorduraPorKg = 1.0;
+      else if (caloriasAjustadas >= 2500) gorduraPorKg = 0.9;
+      else if (caloriasAjustadas >= 2000) gorduraPorKg = 0.8;
+      else gorduraPorKg = 0.7;
+      break;
+    default:
+      gorduraPorKg = 0.8;
+      break;
   }
 
   const gorduraTotalG = Math.round(peso * gorduraPorKg);
@@ -143,15 +155,29 @@ Preferências Alimentares:
 
 📌 **Regras para o Plano:**
 - Inclua um aviso de exclusividade e privacidade no topo
-- Inclua um aviso de que é recomendavel trocar a dieta dentro de 20 a 30 dias no topo
+- Inclua um aviso de que é recomendável trocar a dieta dentro de 20 a 30 dias no topo
 - Calcule e explique o **IMC** e a **ingestão ideal de água**
 - Calcule os **macronutrientes diários** com base nas calorias e peso corporal:
+
   - **Proteína:** ${proteinaPorKg.toFixed(1)}g/kg (ex: ${peso}kg × ${proteinaPorKg} = ${proteinaTotalG}g proteína = ${proteinaKcal} kcal)
+    - Caso o histórico de saúde tenha restrições renais, use 1g/kg
+
   - **Gordura:** ${gorduraPorKg.toFixed(1)}g/kg (ex: ${peso}kg × ${gorduraPorKg} = ${gorduraTotalG}g gordura = ${gorduraKcal} kcal)
+    - Regras utilizadas para gordura:
+      - Eutrófico:
+        - ≥ 3000 kcal: 1.0g/kg
+        - ≥ 2500 kcal: 0.9g/kg
+        - ≥ 2000 kcal: 0.8g/kg
+        - < 2000 kcal: 0.7g/kg
+      - Sobrepeso: 0.7g/kg
+      - Obesidade I: 0.6g/kg
+      - Obesidade II ou III: 0.5g/kg
+
   - **Carboidrato:** Use o restante das calorias totais
   - Conversão:
     - Proteína/Carboidrato = 4 kcal/g
     - Gordura = 9 kcal/g
+
 - Mostre a distribuição total dos macros com gramas e calorias, em um bloco explicativo
 
 - Divida as **refeições** com:
@@ -209,7 +235,6 @@ ${treinoAtivo ? `
 Visual moderno, leve, com cara de eBook profissional.
 
 🛑 **Aviso Importante:** Esta dieta foi gerada automaticamente pela Nutrify com base nos dados fornecidos pelo usuário. Ela **não substitui uma consulta com um nutricionista qualificado**. Sempre que possível, busque acompanhamento profissional individualizado.
-
 `;
 
   try {
