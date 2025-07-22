@@ -1,6 +1,7 @@
 // firebase.js
 import admin from 'firebase-admin';
 
+// Configuração do serviço
 const firebaseConfig = {
   type: 'service_account',
   project_id: process.env.FIREBASE_PROJECT_ID,
@@ -14,10 +15,14 @@ const firebaseConfig = {
   client_x509_cert_url: process.env.FIREBASE_CLIENT_CERT_URL
 };
 
+// Inicializa o app
 if (!admin.apps.length) {
   admin.initializeApp({
-    credential: admin.credential.cert(firebaseConfig)
+    credential: admin.credential.cert(firebaseConfig),
+    storageBucket: process.env.FIREBASE_STORAGE_BUCKET // Ex: nutrify.appspot.com
   });
 }
 
+// Exportações
 export const db = admin.firestore();
+export const bucket = admin.storage().bucket();

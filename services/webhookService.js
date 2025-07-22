@@ -128,7 +128,9 @@ export async function processarWebhookPagamento(paymentData) {
 
     const planoNome = metadata.plano || 'Indefinido';
     await registrarConversao(email, planoNome, valorPago);
-    await salvarDieta(email, dadosUsuario, receita, valorPago, tipoReceita, incluiEbook, id);
+
+    // ✅ Atualizado: envia texto + buffer
+    await salvarDieta(email, dadosUsuario, receita, pdfBuffer, valorPago, tipoReceita, incluiEbook, id);
 
     await paymentRef.set({
       processedAt: admin.firestore.Timestamp.now(),
