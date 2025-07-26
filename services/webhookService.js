@@ -31,22 +31,23 @@ export async function processarWebhookPagamento(paymentData) {
 
     const paymentRef = db.collection("pagamentos_processados").doc(String(paymentId));
 
-    // 🚫 Tentativa de criar doc (proteção contra duplicação)
-    try {
-      console.log(`[Webhook] Tentando registrar pagamento ${paymentId} no Firestore...`);
-      await paymentRef.create({
+    // 🛡️ Proteção contra duplicação usando transação
+    const sucesso = await db.runTransaction(async (t) => {
+      const snap = await t.get(paymentRef);
+
+      if (snap.exists) {
+        console.warn(`[Webhook] Pagamento ${paymentId} já foi processado anteriormente. Encerrando.`);
+        return false;
+      }
+
+      t.set(paymentRef, {
         processingStartedAt: admin.firestore.Timestamp.now()
       });
-      console.log(`[Webhook] Registro de início criado com sucesso para pagamento ${paymentId}.`);
-    } catch (error) {
-      if (error.code === 6 || error.message.includes("already exists")) {
-        console.warn(`[Webhook] Pagamento ${paymentId} já foi processado anteriormente. Encerrando.`);
-        return;
-      } else {
-        console.error(`[Webhook] Erro inesperado ao tentar criar documento do pagamento:`, error);
-        throw error;
-      }
-    }
+
+      return true;
+    });
+
+    if (!sucesso) return;
 
     // 🔄 Tentativa de buscar pagamento com retry
     let pagamento = null;
