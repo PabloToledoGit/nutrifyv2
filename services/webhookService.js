@@ -13,8 +13,10 @@ const arredondar = (num) => Math.round(Number(num) * 100) / 100;
 
 export async function processarWebhookPagamento(paymentData) {
   try {
+    const webhookStartTime = new Date();
     const { id: notificationId, type, data } = paymentData;
-    console.log(`[Webhook] Notificação recebida. Tipo: ${type}, ID: ${notificationId}`);
+
+    console.log(`\n[${webhookStartTime.toISOString()}] >>> INÍCIO do Webhook - Tipo: ${type}, Notificação ID: ${notificationId}`);
 
     if (type !== 'payment') {
       console.log(`[Webhook] Tipo não tratado: ${type}`);
@@ -28,12 +30,25 @@ export async function processarWebhookPagamento(paymentData) {
     }
 
     const paymentRef = db.collection("pagamentos_processados").doc(String(paymentId));
-    const paymentDoc = await paymentRef.get();
-    if (paymentDoc.exists) {
-      console.warn(`[Webhook] Pagamento ${paymentId} já processado. Ignorando...`);
-      return;
+
+    // 🚫 Tentativa de criar doc (proteção contra duplicação)
+    try {
+      console.log(`[Webhook] Tentando registrar pagamento ${paymentId} no Firestore...`);
+      await paymentRef.create({
+        processingStartedAt: admin.firestore.Timestamp.now()
+      });
+      console.log(`[Webhook] Registro de início criado com sucesso para pagamento ${paymentId}.`);
+    } catch (error) {
+      if (error.code === 6 || error.message.includes("already exists")) {
+        console.warn(`[Webhook] Pagamento ${paymentId} já foi processado anteriormente. Encerrando.`);
+        return;
+      } else {
+        console.error(`[Webhook] Erro inesperado ao tentar criar documento do pagamento:`, error);
+        throw error;
+      }
     }
 
+    // 🔄 Tentativa de buscar pagamento com retry
     let pagamento = null;
     const tentativas = 5;
     for (let i = 0; i < tentativas; i++) {
@@ -97,7 +112,8 @@ export async function processarWebhookPagamento(paymentData) {
       dadosUsuario.incluiTreino = dadosUsuario.incluiTreino === true || dadosUsuario.incluiTreino === 'true';
       dadosUsuario.incluiDiaLixo = dadosUsuario.incluiDiaLixo === true || dadosUsuario.incluiDiaLixo === 'true';
 
-      console.log('[Webhook] Flags adicionadas ao formData:', {
+      console.log('[Webhook] Dados do usuário extraídos:', {
+        nome: dadosUsuario.nome,
         incluiTreino: dadosUsuario.incluiTreino,
         incluiDiaLixo: dadosUsuario.incluiDiaLixo
       });
@@ -106,8 +122,9 @@ export async function processarWebhookPagamento(paymentData) {
       return;
     }
 
+    console.log('[Webhook] Chamando IA para gerar a receita...');
     const receita = await gerarTextoReceita(dadosUsuario);
-    console.log('[Webhook] Receita gerada.');
+    console.log('[Webhook] Receita gerada com sucesso.');
 
     console.log('🔧 Iniciando a geração do PDF...');
     const html = gerarHTMLReceita(dadosUsuario.nome || 'Usuário', receita);
@@ -123,15 +140,19 @@ export async function processarWebhookPagamento(paymentData) {
 
     console.log('[Webhook] Link do eBook:', linkEbook || 'Não incluso');
 
+    console.log(`[Webhook] Enviando e-mail para ${email}...`);
     await enviarEmailComPDF(email, dadosUsuario.nome || 'Seu Plano', pdfBuffer, linkEbook);
-    console.log(`[Webhook] E-mail com PDF enviado para ${email}`);
+    console.log(`[Webhook] ✅ E-mail enviado com sucesso.`);
 
     const planoNome = metadata.plano || 'Indefinido';
+
+    console.log('[Webhook] Registrando conversão...');
     await registrarConversao(email, planoNome, valorPago);
 
-    // ✅ Atualizado: envia texto + buffer
+    console.log('[Webhook] Salvando dieta...');
     await salvarDieta(email, dadosUsuario, receita, pdfBuffer, valorPago, tipoReceita, incluiEbook, id);
 
+    console.log('[Webhook] Atualizando documento do pagamento como processado.');
     await paymentRef.set({
       processedAt: admin.firestore.Timestamp.now(),
       email,
@@ -139,9 +160,12 @@ export async function processarWebhookPagamento(paymentData) {
       plano: planoNome
     });
 
-    console.log(`[Webhook] Processo finalizado com sucesso para pagamento ${id}`);
+    const webhookEndTime = new Date();
+    const duration = ((webhookEndTime - webhookStartTime) / 1000).toFixed(2);
+
+    console.log(`[Webhook] ✅ PROCESSO FINALIZADO para pagamento ${id} em ${duration}s.\n`);
   } catch (err) {
-    console.error('[Webhook] Erro fatal no processamento do webhook:', err);
+    console.error('[Webhook] ❌ Erro fatal no processamento:', err);
     throw err;
   }
 }
