@@ -28,19 +28,10 @@ export async function processarWebhookPagamento(paymentData) {
     }
 
     const paymentRef = db.collection("pagamentos_processados").doc(String(paymentId));
-
-    // 🛡️ Blindagem contra duplicações
-    try {
-      await paymentRef.create({
-        createdAt: admin.firestore.Timestamp.now()
-      });
-      console.log(`[Webhook] Pagamento ${paymentId} marcado como processado.`);
-    } catch (error) {
-      if (error.code === 6 || error.message.includes('already exists')) {
-        console.warn(`[Webhook] Pagamento ${paymentId} já foi processado. Ignorando...`);
-        return;
-      }
-      throw error;
+    const paymentDoc = await paymentRef.get();
+    if (paymentDoc.exists) {
+      console.warn(`[Webhook] Pagamento ${paymentId} já processado. Ignorando...`);
+      return;
     }
 
     let pagamento = null;
@@ -138,9 +129,10 @@ export async function processarWebhookPagamento(paymentData) {
     const planoNome = metadata.plano || 'Indefinido';
     await registrarConversao(email, planoNome, valorPago);
 
+    // ✅ Atualizado: envia texto + buffer
     await salvarDieta(email, dadosUsuario, receita, pdfBuffer, valorPago, tipoReceita, incluiEbook, id);
 
-    await paymentRef.update({
+    await paymentRef.set({
       processedAt: admin.firestore.Timestamp.now(),
       email,
       valor: valorPago,
