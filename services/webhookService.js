@@ -23,20 +23,61 @@ export async function processarWebhookPagamento(paymentData) {
       return;
     }
 
-    const paymentId = data?.id;
-    if (!paymentId) {
-      console.error('[Webhook] ID do pagamento ausente.');
+    const paymentIdRaw = data?.id;
+    if (!paymentIdRaw) {
+      console.error('[Webhook] ID do pagamento ausente na notificação.');
       return;
     }
 
-    const paymentRef = db.collection("pagamentos_processados").doc(String(paymentId));
+    // 🔄 Tentativa de buscar o pagamento com retry
+    let pagamento = null;
+    const tentativas = 5;
+    for (let i = 0; i < tentativas; i++) {
+      try {
+        pagamento = await buscarPagamento(paymentIdRaw);
+        if (pagamento) break;
+      } catch (error) {
+        console.warn(`[Tentativa ${i + 1}] Erro ao buscar pagamento: ${error.message}`);
+        await delay(2000 * (i + 1));
+      }
+    }
 
-    // 🛡️ Proteção contra duplicação usando transação
+    if (!pagamento) {
+      console.warn('[Webhook] Buscando via Merchant Order...');
+      pagamento = await buscarViaMerchantOrder(paymentIdRaw);
+    }
+
+    if (!pagamento) {
+      console.error(`[Webhook] Pagamento ${paymentIdRaw} não encontrado via API.`);
+      return;
+    }
+
+    const {
+      id: paymentId,
+      status,
+      metadata = {},
+      transaction_amount,
+      payer = {},
+      additional_info = {}
+    } = pagamento;
+
+    const isTestMode = process.env.TEST_MODE === 'true';
+
+    if (!isTestMode && (status || '').toLowerCase() !== 'approved') {
+      console.log(`[Webhook] Pagamento ${paymentId} com status "${status}". Ignorado (somente aprovados são processados).`);
+      return;
+    }
+
+    if (isTestMode) {
+      console.log(`[Webhook] TEST_MODE ativo. Simulando aprovação para pagamento com status "${status}"`);
+    }
+
+    // 🛡️ Verificação de duplicidade — só após validação do status aprovado
+    const paymentRef = db.collection("pagamentos_processados").doc(String(paymentId));
     const sucesso = await db.runTransaction(async (t) => {
       const snap = await t.get(paymentRef);
-
       if (snap.exists) {
-        console.warn(`[Webhook] Pagamento ${paymentId} já foi processado anteriormente. Encerrando.`);
+        console.warn(`[Webhook] Pagamento ${paymentId} já foi processado anteriormente. Ignorando...`);
         return false;
       }
 
@@ -48,42 +89,6 @@ export async function processarWebhookPagamento(paymentData) {
     });
 
     if (!sucesso) return;
-
-    // 🔄 Tentativa de buscar pagamento com retry
-    let pagamento = null;
-    const tentativas = 5;
-    for (let i = 0; i < tentativas; i++) {
-      try {
-        pagamento = await buscarPagamento(paymentId);
-        if (pagamento) break;
-      } catch (error) {
-        console.warn(`[Tentativa ${i + 1}] Erro ao buscar pagamento: ${error.message}`);
-        await delay(2000 * (i + 1));
-      }
-    }
-
-    if (!pagamento) {
-      console.warn('[Webhook] Buscando via Merchant Order...');
-      pagamento = await buscarViaMerchantOrder(paymentId);
-    }
-
-    if (!pagamento) {
-      console.error(`[Webhook] Pagamento ${paymentId} não encontrado.`);
-      return;
-    }
-
-    const { id, status, metadata = {}, transaction_amount, payer = {}, additional_info = {} } = pagamento;
-
-    const isTestMode = process.env.TEST_MODE === 'true';
-
-    if (!isTestMode && (status || '').toLowerCase() !== 'approved') {
-      console.log(`[Webhook] Pagamento ${id} com status "${status}". Ignorado.`);
-      return;
-    }
-
-    if (isTestMode) {
-      console.log(`[Webhook] TEST_MODE ativo. Simulando aprovação para pagamento com status "${status}"`);
-    }
 
     console.log('[Webhook] Metadata bruta recebida:', metadata);
 
@@ -99,8 +104,6 @@ export async function processarWebhookPagamento(paymentData) {
       console.error(`[Webhook] Valor pago (${valorPago}) difere da soma dos itens (${somaDosItens})`);
       return;
     }
-
-    console.log(`[Webhook] Pagamento validado. Valor: R$ ${valorPago} | Receita: ${tipoReceita}`);
 
     if (!formDataEncoded || !email) {
       console.error('[Webhook] Campos obrigatórios ausentes: formData ou email.');
@@ -127,10 +130,9 @@ export async function processarWebhookPagamento(paymentData) {
     const receita = await gerarTextoReceita(dadosUsuario);
     console.log('[Webhook] Receita gerada com sucesso.');
 
-    console.log('🔧 Iniciando a geração do PDF...');
     const html = gerarHTMLReceita(dadosUsuario.nome || 'Usuário', receita);
     const pdfBuffer = await gerarPDF(dadosUsuario.nome || 'usuario', html);
-    console.log('✅ Buffer do PDF gerado com sucesso.');
+    console.log('✅ PDF gerado com sucesso.');
 
     const incluiEbookRaw = metadata.incluiEbook || metadata.inclui_ebook;
     const incluiEbook = incluiEbookRaw === true || incluiEbookRaw === 'true';
@@ -139,21 +141,14 @@ export async function processarWebhookPagamento(paymentData) {
       ? 'https://firebasestorage.googleapis.com/v0/b/nutrify-2ca2d.firebasestorage.app/o/7%20Dietas%20F%C3%A1ceis%20e%20Pr%C3%A1ticas%20para%20Perder%20at%C3%A9%2020%25%20de%20Peso%20em%201%20M%C3%AAs.pdf?alt=media&token=675a4ebd-2b9b-439f-9053-f6f9a6a2d904'
       : null;
 
-    console.log('[Webhook] Link do eBook:', linkEbook || 'Não incluso');
-
-    console.log(`[Webhook] Enviando e-mail para ${email}...`);
     await enviarEmailComPDF(email, dadosUsuario.nome || 'Seu Plano', pdfBuffer, linkEbook);
-    console.log(`[Webhook] ✅ E-mail enviado com sucesso.`);
+    console.log(`[Webhook] E-mail enviado para ${email}`);
 
     const planoNome = metadata.plano || 'Indefinido';
-
-    console.log('[Webhook] Registrando conversão...');
     await registrarConversao(email, planoNome, valorPago);
 
-    console.log('[Webhook] Salvando dieta...');
-    await salvarDieta(email, dadosUsuario, receita, pdfBuffer, valorPago, tipoReceita, incluiEbook, id);
+    await salvarDieta(email, dadosUsuario, receita, pdfBuffer, valorPago, tipoReceita, incluiEbook, paymentId);
 
-    console.log('[Webhook] Atualizando documento do pagamento como processado.');
     await paymentRef.set({
       processedAt: admin.firestore.Timestamp.now(),
       email,
@@ -163,8 +158,7 @@ export async function processarWebhookPagamento(paymentData) {
 
     const webhookEndTime = new Date();
     const duration = ((webhookEndTime - webhookStartTime) / 1000).toFixed(2);
-
-    console.log(`[Webhook] ✅ PROCESSO FINALIZADO para pagamento ${id} em ${duration}s.\n`);
+    console.log(`[Webhook] ✅ PROCESSO FINALIZADO para pagamento ${paymentId} em ${duration}s.\n`);
   } catch (err) {
     console.error('[Webhook] ❌ Erro fatal no processamento:', err);
     throw err;
