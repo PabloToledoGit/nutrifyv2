@@ -11,16 +11,17 @@ export default async function handler(req, res) {
     const geral = geralSnap.exists ? geralSnap.data() : {};
     const porPlano = porPlanoSnap.exists ? porPlanoSnap.data() : {};
 
-    const usuariosSnapshot = await db.collection('conversoes')
-      .where('__name__', '>=', 'porUsuario_')
-      .limit(10)
-      .get();
+    const snapshot = await db.collection('conversoes').get();
 
     const ultimas = [];
-    usuariosSnapshot.forEach(doc => {
-      const data = doc.data();
-      if (data.ultimas && Array.isArray(data.ultimas)) {
-        data.ultimas.forEach(item => ultimas.push({ ...item, usuario: doc.id.replace('porUsuario_', '') }));
+    snapshot.forEach(doc => {
+      if (doc.id.startsWith('porUsuario_')) {
+        const data = doc.data();
+        if (Array.isArray(data.ultimas)) {
+          data.ultimas.forEach(item => {
+            ultimas.push({ ...item, usuario: doc.id.replace('porUsuario_', '') });
+          });
+        }
       }
     });
 
@@ -29,8 +30,9 @@ export default async function handler(req, res) {
     res.status(200).json({
       geral,
       porPlano,
-      ultimas: ultimas.slice(0, 10),
+      ultimas, // Envia tudo
     });
+
   } catch (err) {
     console.error('[Admin] Erro ao buscar dados:', err);
     res.status(500).json({ error: 'Erro ao buscar dados das conversões.' });
