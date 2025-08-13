@@ -29,7 +29,6 @@ export async function processarWebhookPagamento(paymentData) {
       return;
     }
 
-    // 🔄 Tentativa de buscar o pagamento com retry
     let pagamento = null;
     const tentativas = 5;
     for (let i = 0; i < tentativas; i++) {
@@ -72,7 +71,6 @@ export async function processarWebhookPagamento(paymentData) {
       console.log(`[Webhook] TEST_MODE ativo. Simulando aprovação para pagamento com status "${status}"`);
     }
 
-    // 🛡️ Verificação de duplicidade — só após validação do status aprovado
     const paymentRef = db.collection("pagamentos_processados").doc(String(paymentId));
     const sucesso = await db.runTransaction(async (t) => {
       const snap = await t.get(paymentRef);
@@ -89,8 +87,6 @@ export async function processarWebhookPagamento(paymentData) {
     });
 
     if (!sucesso) return;
-
-    console.log('[Webhook] Metadata bruta recebida:', metadata);
 
     const tipoReceita = metadata.tipoReceita || metadata.tipo_receita;
     const formDataEncoded = metadata.formData || metadata.form_data;
@@ -115,17 +111,30 @@ export async function processarWebhookPagamento(paymentData) {
       dadosUsuario = JSON.parse(Buffer.from(formDataEncoded, 'base64').toString('utf8'));
       dadosUsuario.incluiTreino = dadosUsuario.incluiTreino === true || dadosUsuario.incluiTreino === 'true';
       dadosUsuario.incluiDiaLixo = dadosUsuario.incluiDiaLixo === true || dadosUsuario.incluiDiaLixo === 'true';
-
-      console.log('[Webhook] Dados do usuário extraídos:', {
-        nome: dadosUsuario.nome,
-        incluiTreino: dadosUsuario.incluiTreino,
-        incluiDiaLixo: dadosUsuario.incluiDiaLixo
-      });
     } catch (err) {
       console.error('[Webhook] Erro ao decodificar formData:', err);
       return;
     }
 
+    // 💬 🔁 FLUXO ESPECIAL: CONSULTA COM NUTRICIONISTA
+    if (tipoReceita === 'consulta') {
+      await db.collection('consultas').doc(email).update({
+        status: 'pagamento_aprovado',
+        data_pagamento: admin.firestore.Timestamp.now()
+      });
+
+      console.log(`[Webhook] ✅ Consulta confirmada para ${email}`);
+      await paymentRef.set({
+        processedAt: admin.firestore.Timestamp.now(),
+        email,
+        valor: valorPago,
+        plano: 'Consulta com Nutricionista'
+      });
+
+      return;
+    }
+
+    // 🔁 FLUXO NORMAL: DIETA + TREINO
     console.log('[Webhook] Chamando IA para gerar a receita...');
     const receita = await gerarTextoReceita(dadosUsuario);
     console.log('[Webhook] Receita gerada com sucesso.');
@@ -164,3 +173,4 @@ export async function processarWebhookPagamento(paymentData) {
     throw err;
   }
 }
+

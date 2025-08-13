@@ -27,7 +27,7 @@ export async function criarPagamento({
 
   const valoresPermitidos = [
     10.00, 13.90, 14.90, 15.90, 18.90, 20.80, 19.80,
-    17.80, 16.80, 12.90, 11.90, 28.60, 23.70
+    17.80, 16.80, 12.90, 11.90, 28.60, 23.70, 30.00, 28.60, 25.70, 24.70, 27.60, 22.70
   ];
 
   const valorConvertido = Number(valor);
@@ -42,18 +42,6 @@ export async function criarPagamento({
   formData.incluiTreino = tipoReceita === 'dieta+treino';
   formData.incluiDiaLixo = incluiDiaLixo === true || incluiDiaLixo === 'true';
 
-  console.log('[Pagamento] Dados recebidos para criar pagamento:', {
-    email,
-    nome,
-    sobrenome,
-    valor: valorConvertido,
-    tipoReceita,
-    incluiEbook,
-    incluiTreino: formData.incluiTreino,
-    incluiDiaLixo: formData.incluiDiaLixo,
-    formData
-  });
-
   const metadata = {
     email,
     valor: valorConvertido,
@@ -65,12 +53,15 @@ export async function criarPagamento({
     formData: Buffer.from(JSON.stringify(formData)).toString('base64')
   };
 
+  const isConsulta = tipoReceita === 'consulta';
 
   const items = [
     {
-      id: 'nutrify001',
-      title: `Plano Nutrify Personalizado`,
-      description: `Plano alimentar e de treino individualizado`,
+      id: isConsulta ? 'consulta001' : 'nutrify001',
+      title: isConsulta ? 'Consulta com Nutricionista via WhatsApp' : 'Plano Nutrify Personalizado',
+      description: isConsulta
+        ? 'Atendimento individual com nutricionista'
+        : 'Plano alimentar e de treino individualizado',
       category_id: 'services',
       quantity: 1,
       unit_price: valorConvertido
@@ -80,7 +71,7 @@ export async function criarPagamento({
   const body = {
     transaction_amount: valorConvertido,
     payment_method_id: 'pix',
-    description: `Plano personalizado - Nutrify`,
+    description: items[0].description,
     payer: {
       email,
       first_name: nome,

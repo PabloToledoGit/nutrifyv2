@@ -12,17 +12,16 @@
     "nutrify",
     "backend",
     "vercel",
-    "mercadopago",
     "openai"
   ],
   "author": "Nutrify Team",
   "license": "MIT",
   "description": "Backend para sistema de nutrição personalizada",
   "dependencies": {
+    "@paypal/checkout-server-sdk": "^1.0.3",
     "@sparticuz/chromium": "^137.0.1",
     "express": "^4.18.2",
     "firebase-admin": "^13.4.0",
-    "mercadopago": "^2.7.0",
     "nodemailer": "^6.9.7",
     "openai": "^4.20.1",
     "pdfkit": "^0.14.0",
